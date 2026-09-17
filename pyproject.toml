@@ -1,0 +1,30 @@
+[tool.ruff]
+# Directorio raíz del código a inspeccionar
+src = ["app"]
+line-length = 88
+target-version = "py311"
+
+# Excluir carpetas y archivos autogenerados
+exclude = [
+    ".venv",
+    "__pycache__",
+    "alembic",
+    ".git"
+]
+
+[tool.ruff.lint]
+# Reglas a habilitar:
+# E / W: Errores y Warnings de pycodestyle (PEP 8)
+# F: Pyflakes (imports no usados, variables no definidas)
+# I: isort (orden automático de imports)
+# B: flake8-bugbear (bugs comunes)
+# UP: pyupgrade (modernización de sintaxis en Python 3.11+)
+select = ["E", "W", "F", "I", "B", "UP"]
+ignore = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

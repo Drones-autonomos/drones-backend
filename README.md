@@ -1,88 +1,82 @@
-<div align="center">
-  <img src="https://www.uaq.mx/informatica/images/fotos_descargas/LogosUAQ/Logotipo-Vertical.png" alt="Logo UAQ" width="150" />
-  <img src="https://www.uaq.mx/informatica/images/fotos_descargas/LogosFIF/Escudo_FI.png" alt="Logo Facultad de Informática" width="150" style="margin-left: 20px;"/>
-  
-  # Drones Autónomos - Backend, Simulación y Control
-  
-  **Proyecto Integral de Vuelo Autónomo para la Facultad de Informática de la UAQ**
-</div>
+# Sistema de Drones Autónomos
+**Backend, Simulación y Control**
+
+Proyecto integral desarrollado para la Facultad de Informática de la Universidad Autónoma de Querétaro (UAQ).
 
 ---
 
-## 📖 Descripción del Repositorio
+## Descripción de Arquitectura
 
-Este repositorio contiene el código correspondiente a la capa de **Backend, Integración con el Dron (simulación y control)** y **DevOps** del proyecto **"Drones Autónomos"**. 
-El objetivo principal de este proyecto es implementar un sistema capaz de realizar vuelos autónomos, con control de misiones, transmisión de video, alertas basadas en visión por Inteligencia Artificial (detección de personas y humo) y grabación segura.
+El presente repositorio agrupa el código fuente correspondiente a las capas de **Backend, Integración en Tiempo Real (Simulación y Control de Vuelo)** y la infraestructura **DevOps** del sistema de drones autónomos. 
 
----
-
-## 👥 Equipo Scrum
-
-El proyecto se planifica en **11 sprints semanales** con Dailies los días martes y jueves de cada semana.
-
-- **Product Owner / DEV 3:** Lu Bazaldua *(Define y prioriza backlog, valida entregables, Frontend/Web-Móvil/UX)*.
-- **Scrum Master / DEV 2:** Angel Cenobio *(Facilita dailies, seguimiento, Backend, Arquitectura de Datos)*.
-- **DEV 1:** Fernando Ramirez *(Integración con el dron (simulación/control) y DevOps)*.
+La plataforma está diseñada para la ejecución de vuelos autónomos mediante el control estructurado de misiones, soportando transmisión de video de baja latencia, análisis en tiempo real basado en visión por computadora (detección de personas y presencia de humo) y mecanismos criptográficos para el almacenamiento seguro de la telemetría y material audiovisual.
 
 ---
 
-## 🎯 Product Backlog (Priorizado)
+## Organización del Equipo (Metodología Ágil)
 
-### Prioridad Alta
-- **RNF08 / RF04:** Vuelo autónomo básico en circuito cerrado (ida y vuelta) y control/programado de misiones.
-- **RF11:** Control de acceso basado en roles (RBAC).
-- **RF01:** Detección de personas fuera de horario mediante visión por IA.
-- **RF02 / RF03:** Generación y envío de alertas con evidencia (foto, fecha, hora, ubicación).
-- **(Sin ID):** Detección de humo mediante procesamiento de imágenes.
-- **RF06:** Transmisión y visualización de video en vivo.
-- **RNF03:** Cifrado y control de acceso al repositorio de video.
-- **(Sin ID):** Pruebas de integración, documentación y presentación final.
+El ciclo de desarrollo está estructurado bajo el marco de trabajo Scrum, con una proyección de **11 iteraciones semanales (Sprints)**.
 
-### Prioridad Media
-- **RF07:** Grabación continua y almacenamiento en repositorio seguro.
-- **RF05:** Definición de zonas de exclusión (Geofencing).
-- **RF08:** Purga automática de material audiovisual (retención de 30 días).
-- **RF09:** Bitácora inmutable de vuelos.
-- **RF10:** Auditoría de cambios y accesos.
-- **RNF04:** Conectividad y tolerancia a fallos dron-estación.
-- **RNF02 / RNF07:** Cobertura operativa por horarios y cumplimiento normativo (altura, peso).
-- **RNF05:** Usabilidad de la interfaz web y móvil.
-
-### Prioridad Baja
-- **RNF06:** Integración con base de carga / helipuerto.
+*   **Product Owner / DEV 3:** Lu Bazaldua. *(Gestión y priorización del Product Backlog, validación de criterios de aceptación, diseño de interfaz y desarrollo Frontend/Móvil).*
+*   **Scrum Master / DEV 2:** Angel Cenobio. *(Facilitación de ceremonias, mitigación de impedimentos, desarrollo de lógica de negocio en Backend y Arquitectura de Datos).*
+*   **DEV 1:** Fernando Ramirez. *(Desarrollo de módulos de control de vuelo, simulación, integración de hardware y automatización de despliegues CI/CD).*
 
 ---
 
-## 🗓️ Plan de Trabajo (Sprints)
+## Product Backlog (Priorizado)
 
-| Sprint | Semana | Objetivo / Requerimientos |
-| :---: | :---: | :--- |
-| **1** | Semana 1 | **Fundamentos:** Arquitectura, entornos, MVP de vuelo en circuito cerrado y RBAC. |
-| **2** | Semana 2 | Control y programación de misiones. |
-| **3** | Semana 3 | Detección de personas fuera de horario (IA Visión). |
-| **4** | Semana 4 | Detección de humo (Procesamiento de imágenes). |
-| **5** | Semana 5 | Generación y envío de alertas con evidencia. |
-| **6** | Semana 6 | Transmisión y visualización de video en vivo. |
-| **7** | Semana 7 | Grabación continua y almacenamiento seguro. |
-| **8** | Semana 8 | Geofencing y zonas de exclusión. |
-| **9** | Semana 9 | Retención de datos (purga 30 días) y bitácora. |
-| **10** | Semana 10 | Auditoría de accesos/cambios y usabilidad. |
-| **11** | Semana 11 | Conectividad/tolerancia a fallos, hardware, pruebas finales, documentación y entrega. |
+### Alta Prioridad
+*   **RNF08 / RF04:** Implementación de vuelo autónomo básico en circuito cerrado (navegación multipunto) y ejecución de misiones programadas.
+*   **RF11:** Control de acceso basado en roles (RBAC) para la plataforma de administración.
+*   **RF01:** Módulo de visión computacional para la detección de personas fuera de horarios operativos.
+*   **RF02 / RF03:** Sistema de mensajería para alertas en tiempo real con recolección de evidencia (captura de imagen, metadatos de tiempo y geolocalización).
+*   **[Sin ID]:** Integración de modelo de clasificación de imágenes para detección de humo.
+*   **RF06:** Protocolo de transmisión bidireccional y visualización de video en vivo.
+*   **RNF03:** Implementación de cifrado en reposo para el almacenamiento del flujo de video.
+*   **[Sin ID]:** Ejecución de pruebas de integración continua y estabilización del sistema para entrega en producción.
+
+### Media Prioridad
+*   **RF07:** Grabación continua y delegación de almacenamiento a repositorio seguro.
+*   **RF05:** Configuración de perímetros virtuales restrictivos (Geofencing).
+*   **RF08:** Automatización de purga de datos audiovisuales (política de retención a 30 días).
+*   **RF09:** Implementación de bitácora transaccional e inmutable de telemetría de vuelo.
+*   **RF10:** Registro y auditoría de eventos de acceso y mutación de estado.
+*   **RNF04:** Protocolos de tolerancia a fallos en la capa de red (comunicación dron-estación base).
+*   **RNF02 / RNF07:** Restricciones operativas a nivel software para cumplimiento normativo (límites de altitud y peso).
+*   **RNF05:** Optimización de tiempos de respuesta en la interfaz web y móvil.
+
+### Baja Prioridad
+*   **RNF06:** API de integración para acoplamiento con infraestructura física (base de carga o helipuerto automatizado).
+
+---
+
+## Cronograma de Ejecución (Roadmap)
+
+| Sprint | Hito Principal | Descripción de Entregables |
+| :---: | :--- | :--- |
+| **1** | **Fundamentos Arquitectónicos** | Definición de infraestructura, aprovisionamiento de entornos, MVP de vuelo autónomo y modelo de seguridad RBAC. |
+| **2** | **Sistemas de Navegación** | Módulos de control y orquestación de misiones programadas. |
+| **3** | **Análisis de Video (Personas)** | Integración de IA para detección de personas fuera de horario. |
+| **4** | **Análisis de Video (Humo)** | Detección de humo en el procesamiento del flujo de imágenes. |
+| **5** | **Sistema de Notificaciones** | Motor de reglas para generación de alertas con recolección de metadatos. |
+| **6** | **Streaming** | Transmisión y visualización de video en tiempo real. |
+| **7** | **Persistencia Segura** | Almacenamiento continuo con encriptación en reposo. |
+| **8** | **Navegación Restringida** | Implementación del módulo de Geofencing y zonas de exclusión. |
+| **9** | **Ciclo de Vida de Datos** | Política de retención (30 días) y auditoría inmutable de bitácoras. |
+| **10** | **Trazabilidad y Usabilidad** | Auditoría integral de accesos y optimización de interacción de usuario. |
+| **11** | **Estabilización Final** | Pruebas de tolerancia a fallos, revisión de hardware, documentación técnica y despliegue final. |
 
 ---
 
-## 🚀 Sprint 1: Cimientos de Arquitectura, Entornos y MVP
+## Sprint 1: Arquitectura Base, Entornos y MVP
 
-**Meta del Sprint:** 
-Establecer la arquitectura base del proyecto, configurar entornos, definir el modelo de datos inicial (RBAC) y tener un prototipo de vuelo autónomo simulado en circuito cerrado (Minimum Viable Product).
+**Objetivo de la Iteración:**
+Aprovisionar la infraestructura fundacional del proyecto, configurando los entornos de desarrollo e integración. Establecer el esquema de persistencia inicial (RBAC) y desplegar un Prototipo Mínimo Viable (MVP) para la simulación de vuelo autónomo en un circuito delimitado.
 
-**Definition of Done (DoD) - Semana 1:**
-- [ ] Todo código subido en GitHub con al menos un PR revisado por otro integrante.
-- [ ] Entorno de simulación del dron ejecutando misión de ida y vuelta sin intervención manual.
-- [ ] Login funcional End-to-End (Frontend consumiendo Backend).
-- [ ] Modelo de datos inicial (Usuario, Rol) migrado a base de datos.
-- [ ] Pipeline CI/CD ejecutando build exitosamente tras cada push a `main`.
-- [ ] Demo de Review presentada al Product Owner sin errores críticos.
-
----
-*Desarrollado para la Facultad de Informática de la UAQ.*
+**Criterios de Aceptación (DoD):**
+- [ ] Todo el código fuente está versionado en el repositorio principal, contando con al menos un Code Review (PR) aprobado.
+- [ ] El simulador SITL ejecuta exitosamente una misión programada (trayectoria de ida y vuelta) sin intervención telemétrica manual.
+- [ ] Flujo de autenticación completo (End-to-End) operativo entre Frontend y Backend.
+- [ ] Esquema relacional base (entidades Usuario y Rol) inicializado en el motor de base de datos.
+- [ ] Pipeline CI/CD configurado y ejecutando la fase de build exitosamente ante cada integración en la rama `main`.
+- [ ] La iteración concluye con una demostración funcional al Product Owner sin deficiencias críticas o bloqueantes.
