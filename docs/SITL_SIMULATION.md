@@ -4,10 +4,27 @@ Para el desarrollo y pruebas de las misiones autónomas del dron sin requerir ha
 
 ## Prerrequisitos
 
-Asegúrate de tener instalado Python en tu sistema y preferentemente usar un entorno virtual activo.
-Instala las dependencias necesarias:
+Asegúrate de tener instalado Python en tu sistema y **siempre usar un entorno virtual activo** para evitar conflictos con los paquetes del sistema.
+
+### En Ubuntu / Debian / MacOS
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install dronekit-sitl mavproxy
+```
+
+### En Arch Linux (Específico)
+En Arch Linux, `pip` está bloqueado globalmente por defecto (PEP 668). Debes hacerlo estrictamente dentro de un entorno virtual. Además, si quieres que la consola gráfica de MAVProxy funcione (mapa, gráficos), es recomendable instalar `wxpython`.
 
 ```bash
+# 1. Instalar dependencias del sistema (opcional pero recomendado para MAVProxy)
+sudo pacman -S python python-pip tk wxpython
+
+# 2. Crear y activar el entorno virtual
+python -m venv venv
+source venv/bin/activate
+
+# 3. Instalar los binarios de simulación en el entorno virtual
 pip install dronekit-sitl mavproxy
 ```
 
