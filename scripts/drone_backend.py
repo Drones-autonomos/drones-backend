@@ -9,8 +9,9 @@ from dronekit import LocationGlobalRelative, VehicleMode, connect
 print("Connecting to vehicle on: 127.0.0.1:14550")
 vehicle = connect("127.0.0.1:14550", wait_ready=True)
 
-print("Disabling Geofence for SITL...")
+print("Disabling Geofence and Pre-arm checks for SITL...")
 vehicle.parameters['FENCE_ENABLE'] = 0
+vehicle.parameters['ARMING_CHECK'] = 0
 
 def get_location_metres(original_location, dNorth, dEast):
     """
