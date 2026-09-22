@@ -7,4 +7,6 @@ source venv/bin/activate
 HOME_LOCATION="20.70428,-100.44358,1900,0"
 
 echo "Iniciando simulador en Facultad de Informática UAQ, Juriquilla..."
+# Forzamos el locale a C para que el simulador (C++) entienda el punto decimal de las coordenadas
+export LC_ALL=C
 dronekit-sitl copter --home=$HOME_LOCATION --wipe

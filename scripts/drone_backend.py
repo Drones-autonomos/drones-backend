@@ -37,9 +37,16 @@ def arm_and_takeoff(target_altitude):
     print("Basic pre-arm checks")
 
     # Wait until the vehicle is ready to be armed.
-    # vehicle.is_armable ensures the autopilot has GPS lock and passed system checks.
     while not vehicle.is_armable:
         print(" Waiting for vehicle to initialise...")
+        time.sleep(1)
+
+    # Dado que desactivamos los chequeos de pre-armado, necesitamos asegurarnos manualmente
+    # de que el GPS ya se haya conectado antes de despegar. Si no, ArduPilot cree
+    # por defecto que está en Canberra, Australia.
+    print("Waiting for GPS 3D fix...")
+    while vehicle.gps_0.fix_type < 3:
+        print(" Esperando satélites... Fix actual:", vehicle.gps_0.fix_type)
         time.sleep(1)
 
     print("Arming motors")
