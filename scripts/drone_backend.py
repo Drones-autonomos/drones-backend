@@ -56,12 +56,10 @@ def arm_and_takeoff(target_altitude):
         )
         time.sleep(1)
 
-    # Arm the drone (start the motors turning).
-    vehicle.armed = True
-
     # Loop to confirm the vehicle is actually armed before attempting to take off.
     while not vehicle.armed:
         print(" Waiting for arming...")
+        vehicle.armed = True
         time.sleep(1)
 
     print("Arming motors")
@@ -91,17 +89,16 @@ arm_and_takeoff(10)
 print("Hovering for 5 seconds...")
 time.sleep(5)
 
-# Crear un waypoint a 100 metros al NORTE y 100 metros al ESTE de la posición actual
+# Crear un waypoint a 350 metros al NORTE y 150 metros al OESTE de la posición actual
 current_loc = vehicle.location.global_relative_frame
-waypoint1 = get_location_metres(current_loc, dNorth=100, dEast=100)
+waypoint1 = get_location_metres(current_loc, dNorth=350, dEast=-150)
 
-print("Navigating to Waypoint 1 (100m North, 100m East)...")
+print("Navigating to Waypoint 1 (350m North, 150m West)...")
 # Usamos simple_goto para mandar al dron a esas coordenadas GPS a su altitud actual
 vehicle.simple_goto(waypoint1)
 
-# Esperamos un rato para que el dron llegue al destino
-# (En un código más avanzado, podríamos calcular la distancia restante usando la fórmula de Haversine)
-time.sleep(15)
+# Esperamos más tiempo para que el dron logre recorrer toda esa distancia
+time.sleep(45)
 
 print("Returning to Launch")
 # Change the mode to RTL (Return To Launch) to make the drone fly back to its starting point and land.
