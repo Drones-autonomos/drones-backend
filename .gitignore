@@ -23,3 +23,14 @@ __pycache__/
 
 # Misc
 .DS_Store
+
+# Pytest & Ruff cache
+.pytest_cache/
+.ruff_cache/
+
+# MAVProxy & SITL Logs/Cache
+mav.parm
+mav.tlog
+mav.tlog.raw
+eeprom.bin
+*.rbin
