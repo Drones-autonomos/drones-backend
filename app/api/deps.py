@@ -1,4 +1,5 @@
 from collections.abc import Generator
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -41,7 +42,7 @@ def get_current_user(
             raise credentials_exception
         token_data = TokenPayload(sub=user_id)
     except JWTError:
-        raise credentials_exception
+        raise credentials_exception from None
 
     user = db.query(Usuario).filter(Usuario.id == int(token_data.sub)).first()
     if not user:

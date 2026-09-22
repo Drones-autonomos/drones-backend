@@ -1,6 +1,8 @@
-import time
 import logging
-from dronekit import connect as dronekit_connect, VehicleMode
+import time
+
+from dronekit import VehicleMode
+from dronekit import connect as dronekit_connect
 
 logger = logging.getLogger(__name__)
 

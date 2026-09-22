@@ -1,5 +1,6 @@
-from dronekit import connect, VehicleMode
 import time
+
+from dronekit import VehicleMode, connect
 
 # Connect to the vehicle.
 # '127.0.0.1:14550' is a typical connection string for a local simulator (like SITL).
@@ -12,7 +13,7 @@ def arm_and_takeoff(target_altitude):
     Arms vehicle and fly to a specified target altitude.
     """
     print("Basic pre-arm checks")
-    
+
     # Wait until the vehicle is ready to be armed.
     # vehicle.is_armable ensures the autopilot has GPS lock and passed system checks.
     while not vehicle.is_armable:
@@ -26,7 +27,7 @@ def arm_and_takeoff(target_altitude):
         print(" Intentando cambiar a modo GUIDED...")
         vehicle.mode = VehicleMode("GUIDED")
         time.sleep(1)
-    
+
     # Arm the drone (start the motors turning).
     vehicle.armed = True
 
@@ -46,12 +47,12 @@ def arm_and_takeoff(target_altitude):
     while True:
         # Print the current altitude relative to the home location.
         print(" Altitude: ", vehicle.location.global_relative_frame.alt)
-        
+
         # Check if the current altitude is at least 95% of the target altitude.
         if vehicle.location.global_relative_frame.alt >= target_altitude * 0.95:
             print("Reached target altitude")
             break # Exit the loop once the target is reached.
-            
+
         # Wait 1 second before checking again.
         time.sleep(1)
 

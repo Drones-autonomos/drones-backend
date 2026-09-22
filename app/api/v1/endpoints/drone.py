@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from app.services.drone_service import drone_service
 

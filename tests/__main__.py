@@ -1,5 +1,5 @@
-import unittest
 import os
+import unittest
 
 if __name__ == '__main__':
     tests_dir = os.path.dirname(__file__)
