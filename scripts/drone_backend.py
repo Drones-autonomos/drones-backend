@@ -21,7 +21,11 @@ def arm_and_takeoff(target_altitude):
 
     print("Arming motors")
     # Set the vehicle mode to GUIDED, which is required for autonomous script control.
-    vehicle.mode = VehicleMode("GUIDED")
+    # En simuladores a veces rechaza el cambio si no está 100% listo, así que lo intentamos en bucle
+    while vehicle.mode.name != 'GUIDED':
+        print(" Intentando cambiar a modo GUIDED...")
+        vehicle.mode = VehicleMode("GUIDED")
+        time.sleep(1)
     
     # Arm the drone (start the motors turning).
     vehicle.armed = True
@@ -30,6 +34,9 @@ def arm_and_takeoff(target_altitude):
     while not vehicle.armed:
         print(" Waiting for arming...")
         time.sleep(1)
+
+    print("Arming motors")
+    time.sleep(2)
 
     print("Taking off!")
     # Command the drone to take off vertically to the target altitude.

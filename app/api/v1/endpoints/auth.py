@@ -54,7 +54,7 @@ def register(user_in: UserCreate, db: Session = Depends(deps.get_db)):
     return db_user
 
 
-@router.post("/login", response_model=Token, response_model=Token,
+@router.post("/login", response_model=Token,
     status_code=status.HTTP_200_OK,
     summary="Iniciar sesión y obtener JWT",
     description=(
@@ -88,7 +88,7 @@ def login(credentials: UserLogin, db: Session = Depends(deps.get_db)):
     return {"access_token": token, "token_type": "bearer"}
 
 
-@router.get("/me", response_model=UserResponse, response_model=UserResponse,
+@router.get("/me", response_model=UserResponse,
     status_code=status.HTTP_200_OK,
     summary="Obtener perfil del usuario actual",
     description=(

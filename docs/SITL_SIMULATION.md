@@ -10,22 +10,22 @@ Asegúrate de tener instalado Python en tu sistema y **siempre usar un entorno v
 ```bash
 python -m venv venv
 source venv/bin/activate
-pip install dronekit-sitl mavproxy
+pip install future dronekit-sitl mavproxy
 ```
 
 ### En Arch Linux (Específico)
-En Arch Linux, `pip` está bloqueado globalmente por defecto (PEP 668). Debes hacerlo estrictamente dentro de un entorno virtual. Además, si quieres que la consola gráfica de MAVProxy funcione (mapa, gráficos), es recomendable instalar `wxpython`.
+En Arch Linux, `pip` está bloqueado globalmente por defecto (PEP 668). Debes hacerlo estrictamente dentro de un entorno virtual. Además, si quieres que la consola gráfica de MAVProxy funcione (mapa, gráficos), es recomendable instalar `python-wxpython`.
 
 ```bash
 # 1. Instalar dependencias del sistema (opcional pero recomendado para MAVProxy)
-sudo pacman -S python python-pip tk wxpython
+sudo pacman -S python python-pip tk python-wxpython
 
 # 2. Crear y activar el entorno virtual
 python -m venv venv
 source venv/bin/activate
 
 # 3. Instalar los binarios de simulación en el entorno virtual
-pip install dronekit-sitl mavproxy
+pip install future dronekit-sitl mavproxy
 ```
 
 ## Ejecución del Entorno
@@ -33,8 +33,11 @@ pip install dronekit-sitl mavproxy
 Debes usar múltiples terminales para levantar el entorno y luego comunicarte con él.
 
 ### 1. Iniciar el Simulador
-En una nueva terminal, inicia el simulador de un cuadricóptero (`copter`).
-Esto levantará la instancia del dron virtual escuchando conexiones TCP en el puerto local `5760`.
+En una nueva terminal, asegúrate de activar tu entorno virtual primero:
+```bash
+source venv/bin/activate
+```
+Luego, inicia el simulador de un cuadricóptero (`copter`). Esto levantará la instancia del dron virtual escuchando conexiones TCP en el puerto local `5760`.
 
 ```bash
 dronekit-sitl copter
@@ -42,7 +45,11 @@ dronekit-sitl copter
 
 ### 2. Rutear la Telemetría (MAVProxy)
 Nuestro backend (y los scripts de prueba) esperan interactuar con el dron a través de **UDP en el puerto `14550`**, que es el estándar habitual.
-En otra terminal, corre MAVProxy para establecer el puente entre el simulador y nuestro backend:
+En otra terminal, activa nuevamente tu entorno virtual y corre MAVProxy para establecer el puente:
+
+```bash
+source venv/bin/activate
+```
 
 ```bash
 mavproxy.py --master tcp:127.0.0.1:5760 --out udp:127.0.0.1:14550
