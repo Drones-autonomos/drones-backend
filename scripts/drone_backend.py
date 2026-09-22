@@ -6,7 +6,8 @@ from dronekit import VehicleMode, connect
 # '127.0.0.1:14550' is a typical connection string for a local simulator (like SITL).
 # For a physical drone, it might be a serial port (e.g., '/dev/ttyUSB0') or a UDP address.
 print("Connecting to vehicle on: 127.0.0.1:14550")
-vehicle = connect('127.0.0.1:14550', wait_ready=True)
+vehicle = connect("127.0.0.1:14550", wait_ready=True)
+
 
 def arm_and_takeoff(target_altitude):
     """
@@ -23,7 +24,7 @@ def arm_and_takeoff(target_altitude):
     print("Arming motors")
     # Set the vehicle mode to GUIDED, which is required for autonomous script control.
     # En simuladores a veces rechaza el cambio si no está 100% listo, así que lo intentamos en bucle
-    while vehicle.mode.name != 'GUIDED':
+    while vehicle.mode.name != "GUIDED":
         print(" Intentando cambiar a modo GUIDED...")
         vehicle.mode = VehicleMode("GUIDED")
         time.sleep(1)
@@ -51,10 +52,11 @@ def arm_and_takeoff(target_altitude):
         # Check if the current altitude is at least 95% of the target altitude.
         if vehicle.location.global_relative_frame.alt >= target_altitude * 0.95:
             print("Reached target altitude")
-            break # Exit the loop once the target is reached.
+            break  # Exit the loop once the target is reached.
 
         # Wait 1 second before checking again.
         time.sleep(1)
+
 
 # Execute the takeoff function, instructing the drone to climb to 10 meters.
 arm_and_takeoff(10)

@@ -6,6 +6,7 @@ from dronekit import connect as dronekit_connect
 
 logger = logging.getLogger(__name__)
 
+
 class DroneService:
     def __init__(self):
         self.vehicle = None
@@ -65,6 +66,7 @@ class DroneService:
             logger.info("Cerrando conexión con el vehículo")
             self.vehicle.close()
             self.vehicle = None
+
 
 # Instancia global del servicio
 drone_service = DroneService()
