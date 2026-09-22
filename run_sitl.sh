@@ -7,4 +7,4 @@ source venv/bin/activate
 HOME_LOCATION="20.70428,-100.44358,1900,0"
 
 echo "Iniciando simulador en Facultad de Informática UAQ, Juriquilla..."
-dronekit-sitl copter --home=$HOME_LOCATION
+dronekit-sitl copter --home=$HOME_LOCATION --wipe
