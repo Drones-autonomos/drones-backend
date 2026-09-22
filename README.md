@@ -1,7 +1,39 @@
-# Sistema de Drones Autónomos
-**Backend, Simulación y Control**
+<div align="center">
 
-Proyecto integral desarrollado para la Facultad de Informática de la Universidad Autónoma de Querétaro (UAQ).
+  <img src="https://upload.wikimedia.org/wikipedia/commons/4/4b/Logo_UAQ.png" alt="UAQ Logo" height="120px">
+
+### Sistema de Drones Autónomos
+
+[![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)](https://github.com/features/actions)
+
+---
+
+Proyecto integral de Backend, Simulación y Control desarrollado para la Facultad de Informática de la Universidad Autónoma de Querétaro (UAQ).
+
+</div>
+
+---
+
+## Tabla de Contenidos
+
+- [Miembros del Equipo](#miembros-del-equipo)
+- [Descripción de Arquitectura](#descripción-de-arquitectura)
+- [Product Backlog (Priorizado)](#product-backlog-priorizado)
+- [Cronograma de Ejecución (Roadmap)](#cronograma-de-ejecución-roadmap)
+- [Sprint 1: Arquitectura Base, Entornos y MVP](#sprint-1-arquitectura-base-entornos-y-mvp)
+- [Documentación Adicional](#documentación-adicional)
+
+---
+
+## Miembros del Equipo
+
+- **Ángelica Cenobio** *(Scrum Master / DEV 2: Facilitación de ceremonias, mitigación de impedimentos, desarrollo de lógica de negocio en Backend y Arquitectura de Datos).*
+- **Lu Álvarez** *(Product Owner / DEV 3: Gestión y priorización del Product Backlog, validación de criterios de aceptación, diseño de interfaz y desarrollo Frontend/Móvil).*
+- **Fernando Ramírez** *(DEV 1: Desarrollo de módulos de control de vuelo, simulación, integración de hardware y automatización de despliegues CI/CD).*
 
 ---
 
@@ -10,16 +42,6 @@ Proyecto integral desarrollado para la Facultad de Informática de la Universida
 El presente repositorio agrupa el código fuente correspondiente a las capas de **Backend, Integración en Tiempo Real (Simulación y Control de Vuelo)** y la infraestructura **DevOps** del sistema de drones autónomos. 
 
 La plataforma está diseñada para la ejecución de vuelos autónomos mediante el control estructurado de misiones, soportando transmisión de video de baja latencia, análisis en tiempo real basado en visión por computadora (detección de personas y presencia de humo) y mecanismos criptográficos para el almacenamiento seguro de la telemetría y material audiovisual.
-
----
-
-## Organización del Equipo (Metodología Ágil)
-
-El ciclo de desarrollo está estructurado bajo el marco de trabajo Scrum, con una proyección de **11 iteraciones semanales (Sprints)**.
-
-*   **Product Owner / DEV 3:** Lu Bazaldua. *(Gestión y priorización del Product Backlog, validación de criterios de aceptación, diseño de interfaz y desarrollo Frontend/Móvil).*
-*   **Scrum Master / DEV 2:** Angel Cenobio. *(Facilitación de ceremonias, mitigación de impedimentos, desarrollo de lógica de negocio en Backend y Arquitectura de Datos).*
-*   **DEV 1:** Fernando Ramirez. *(Desarrollo de módulos de control de vuelo, simulación, integración de hardware y automatización de despliegues CI/CD).*
 
 ---
 
@@ -80,3 +102,9 @@ Aprovisionar la infraestructura fundacional del proyecto, configurando los entor
 - [ ] Esquema relacional base (entidades Usuario y Rol) inicializado en el motor de base de datos.
 - [ ] Pipeline CI/CD configurado y ejecutando la fase de build exitosamente ante cada integración en la rama `main`.
 - [ ] La iteración concluye con una demostración funcional al Product Owner sin deficiencias críticas o bloqueantes.
+
+---
+
+## Documentación Adicional
+
+- [Guía de Configuración: Entorno de Simulación SITL](docs/SITL_SIMULATION.md)

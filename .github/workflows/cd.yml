@@ -1,0 +1,27 @@
+name: Backend CD (Docker Build Check)
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  docker-build-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Verificar construcción de imagen Docker
+        # Solo verificamos que la imagen construya correctamente.
+        # Más adelante se puede agregar login y push a un Registry.
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: drones-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

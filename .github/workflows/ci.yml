@@ -23,7 +23,7 @@ jobs:
       - name: Instalar dependencias
         run: |
           python -m pip install --upgrade pip
-          pip install ruff
+          pip install ruff pytest fastapi pydantic
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Copiar variables de entorno de prueba
@@ -34,3 +34,6 @@ jobs:
 
       - name: Validar formato con Ruff (Format Check)
         run: ruff format --check .
+
+      - name: Ejecutar pruebas unitarias (Pytest)
+        run: pytest tests/
