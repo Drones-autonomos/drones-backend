@@ -1,7 +1,7 @@
 import math
 import time
 
-from dronekit import LocationGlobalRelative, VehicleMode, connect
+from dronekit import LocationGlobalRelative, connect
 
 # Connect to the vehicle.
 # '127.0.0.1:14550' is a typical connection string for a local simulator (like SITL).
@@ -10,15 +10,33 @@ print("Connecting to vehicle on: 127.0.0.1:14550")
 vehicle = connect("127.0.0.1:14550", wait_ready=True)
 
 print("Disabling Geofence and Pre-arm checks for SITL...")
-vehicle.parameters['FENCE_ENABLE'] = 0
-vehicle.parameters['ARMING_CHECK'] = 0
+vehicle.parameters["FENCE_ENABLE"] = 0
+vehicle.parameters["ARMING_CHECK"] = 0
+
+print("Force-setting the Home Location via MAVLink (teleporting drone to UAQ)...")
+# MAV_CMD_DO_SET_HOME (179)
+vehicle._master.mav.command_long_send(
+    vehicle._master.target_system,
+    vehicle._master.target_component,
+    179,
+    0,
+    0,  # 0 = usar coordenadas proporcionadas
+    0,
+    0,
+    0,  # params vacíos
+    20.70428,
+    -100.44358,
+    1900,  # lat, lon, alt
+)
+time.sleep(2)
+
 
 def get_location_metres(original_location, dNorth, dEast):
     """
     Devuelve un objeto LocationGlobalRelative con las coordenadas desplazadas
     dNorth y dEast (en metros) desde la posición original.
     """
-    earth_radius = 6378137.0 # Radio de la Tierra en metros
+    earth_radius = 6378137.0  # Radio de la Tierra en metros
     # Desplazamientos en radianes
     dLat = dNorth / earth_radius
     dLon = dEast / (earth_radius * math.cos(math.pi * original_location.lat / 180))
@@ -26,7 +44,7 @@ def get_location_metres(original_location, dNorth, dEast):
     # Nueva posición en grados decimales
     newlat = original_location.lat + (dLat * 180 / math.pi)
     newlon = original_location.lon + (dLon * 180 / math.pi)
-    
+
     return LocationGlobalRelative(newlat, newlon, original_location.alt)
 
 
@@ -37,9 +55,16 @@ def arm_and_takeoff(target_altitude):
     print("Basic pre-arm checks")
 
     # Wait until the vehicle is ready to be armed.
-    # vehicle.is_armable ensures the autopilot has GPS lock and passed system checks.
     while not vehicle.is_armable:
         print(" Waiting for vehicle to initialise...")
+        time.sleep(1)
+
+    # Dado que desactivamos los chequeos de pre-armado, necesitamos asegurarnos manualmente
+    # de que el GPS ya se haya conectado antes de despegar. Si no, ArduPilot cree
+    # por defecto que está en Canberra, Australia.
+    print("Waiting for GPS 3D fix...")
+    while vehicle.gps_0.fix_type < 3:
+        print(" Esperando satélites... Fix actual:", vehicle.gps_0.fix_type)
         time.sleep(1)
 
     print("Arming motors")
@@ -51,8 +76,8 @@ def arm_and_takeoff(target_altitude):
         # Enviamos el mensaje SET_MODE directamente:
         vehicle._master.mav.set_mode_send(
             vehicle._master.target_system,
-            209, # MAV_MODE_FLAG_CUSTOM_MODE_ENABLED (1) | MAV_MODE_FLAG_SAFETY_ARMED (128) | etc
-            4    # 4 es el número de modo para GUIDED en ArduCopter
+            209,  # MAV_MODE_FLAG_CUSTOM_MODE_ENABLED (1) | MAV_MODE_FLAG_SAFETY_ARMED (128) | etc
+            4,  # 4 es el número de modo para GUIDED en ArduCopter
         )
         time.sleep(1)
 
@@ -89,23 +114,24 @@ arm_and_takeoff(10)
 print("Hovering for 5 seconds...")
 time.sleep(5)
 
-# Crear un waypoint a 350 metros al NORTE y 150 metros al OESTE de la posición actual
+# Waypoint: recorre la Facultad de Informática en línea recta de sur a norte
+# El edificio mide ~200m en el eje N-S. Ajusta dEast para alinear con tu punto de inicio.
 current_loc = vehicle.location.global_relative_frame
-waypoint1 = get_location_metres(current_loc, dNorth=350, dEast=-150)
+waypoint1 = get_location_metres(current_loc, dNorth=200, dEast=30)
 
-print("Navigating to Waypoint 1 (350m North, 150m West)...")
-# Usamos simple_goto para mandar al dron a esas coordenadas GPS a su altitud actual
+print("Navigating to Waypoint 1 — recorrido norte de la facultad...")
 vehicle.simple_goto(waypoint1)
 
-# Esperamos más tiempo para que el dron logre recorrer toda esa distancia
-time.sleep(45)
+# Tiempo estimado para 200m a ~5 m/s de velocidad crucero = ~40 segundos
+# Aumentamos margen por aceleración/deceleración
+time.sleep(50)
 
 print("Returning to Launch")
 # Change the mode to RTL (Return To Launch) to make the drone fly back to its starting point and land.
 vehicle._master.mav.set_mode_send(
     vehicle._master.target_system,
     209,
-    6 # 6 es el número de modo para RTL en ArduCopter
+    6,  # 6 es el número de modo para RTL en ArduCopter
 )
 
 print("Closing vehicle object")

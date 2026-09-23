@@ -30,38 +30,42 @@ pip install future dronekit-sitl mavproxy
 
 ## Ejecución del Entorno
 
-Debes usar múltiples terminales para levantar el entorno y luego comunicarte con él.
+Necesitas **dos terminales** simultáneas.
 
-### 1. Iniciar el Simulador (Facultad de Informática UAQ)
-Hemos preconfigurado un script para que el dron virtual inicie directamente en el Campus Juriquilla de la UAQ y formatee cualquier dato previo (`eeprom`) para evitar problemas de caché con locaciones anteriores.
+### Terminal 1 — Iniciar el Simulador SITL
 
-En una nueva terminal:
 ```bash
-# Ejecutar el script que inicializa SITL en las coordenadas de la UAQ
 ./run_sitl.sh
 ```
-*(Este script activa el entorno virtual y lanza `dronekit-sitl copter --home=... --wipe`)*
 
-### 2. Rutear la Telemetría (MAVProxy)
-Nuestro backend (y los scripts de prueba) esperan interactuar con el dron a través de **UDP en el puerto `14550`**, que es el estándar habitual.
-En otra terminal, activa nuevamente tu entorno virtual y corre MAVProxy para establecer el puente. Además, puedes cargar el módulo del mapa interactivo:
+Este script ejecuta el binario ArduPilot SITL directamente en las coordenadas del Campus Juriquilla UAQ (`20.70428, -100.44358`). Espera hasta ver la línea:
 
-```bash
-source venv/bin/activate
+```
+Waiting for connection ....
 ```
 
+> **Nota técnica:** El script usa el binario `~/.dronekit/sitl/copter-3.3/apm` directamente en lugar del wrapper `dronekit-sitl`, porque el wrapper tiene un bug conocido donde redirige el `--home` al simulador pysim legado sin pasarlo al binario ArduPilot real, resultando en que el SITL ignora las coordenadas configuradas y usa su default hardcodeado (Canberra, Australia).
+
+### Terminal 2 — Iniciar MAVProxy con Mapa
+
 ```bash
-mavproxy.py --master tcp:127.0.0.1:5760 --out udp:127.0.0.1:14550 --map
+./run_mavproxy.sh
 ```
 
-> **Nota:** Al ejecutar este comando, tendrás acceso a una consola interactiva y un mapa 2D donde puedes visualizar al dron en tiempo real moviéndose por el campus Juriquilla.
+Este script lanza MAVProxy con:
+- Ruteado de telemetría al backend en `udp:127.0.0.1:14550`
+- Mapa interactivo **centrado automáticamente en UAQ Juriquilla**
+- Consola de estado del dron
 
-### 3. Probar la Conexión
-Una vez que ambas herramientas estén corriendo, tu entorno de simulación está listo.
-Puedes lanzar los scripts de validación que ejecutarán secuencias de vuelo autónomas con waypoints:
+> **Nota sobre el mapa:** MAVProxy por default abre el mapa centrado en Canberra, Australia (la ubicación de pruebas de ArduPilot). El script `run_mavproxy.sh` usa `--cmd="map zoom 16; map center 20.70428 -100.44358"` para forzar el mapa a Juriquilla al arrancar.
+
+### Terminal 3 (Opcional) — Probar la Conexión
+
+Una vez que ambas herramientas estén corriendo:
 
 ```bash
 source venv/bin/activate
 python scripts/drone_backend.py
 ```
+
 *(Nota técnica: ArduCopter 3.3 simulado por SITL tiene incompatibilidades al aceptar `MAV_CMD_DO_SET_MODE` desde DroneKit, por lo que internamente los scripts utilizan `set_mode_send` en raw MAVLink).*
