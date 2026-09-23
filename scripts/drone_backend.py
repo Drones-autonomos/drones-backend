@@ -114,16 +114,17 @@ arm_and_takeoff(10)
 print("Hovering for 5 seconds...")
 time.sleep(5)
 
-# Crear un waypoint a 350 metros al NORTE y 150 metros al OESTE de la posición actual
+# Waypoint: recorre la Facultad de Informática en línea recta de sur a norte
+# El edificio mide ~200m en el eje N-S. Ajusta dEast para alinear con tu punto de inicio.
 current_loc = vehicle.location.global_relative_frame
-waypoint1 = get_location_metres(current_loc, dNorth=350, dEast=-150)
+waypoint1 = get_location_metres(current_loc, dNorth=200, dEast=30)
 
-print("Navigating to Waypoint 1 (350m North, 150m West)...")
-# Usamos simple_goto para mandar al dron a esas coordenadas GPS a su altitud actual
+print("Navigating to Waypoint 1 — recorrido norte de la facultad...")
 vehicle.simple_goto(waypoint1)
 
-# Esperamos más tiempo para que el dron logre recorrer toda esa distancia
-time.sleep(45)
+# Tiempo estimado para 200m a ~5 m/s de velocidad crucero = ~40 segundos
+# Aumentamos margen por aceleración/deceleración
+time.sleep(50)
 
 print("Returning to Launch")
 # Change the mode to RTL (Return To Launch) to make the drone fly back to its starting point and land.
