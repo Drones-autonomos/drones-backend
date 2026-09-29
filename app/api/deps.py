@@ -1,4 +1,5 @@
 from collections.abc import Generator
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -40,8 +41,8 @@ def get_current_user(
         if user_id is None:
             raise credentials_exception
         token_data = TokenPayload(sub=user_id)
-    except JWTError:
-        raise credentials_exception
+    except JWTError as exc:
+        raise credentials_exception from exc
 
     user = db.query(Usuario).filter(Usuario.id == int(token_data.sub)).first()
     if not user:
@@ -54,7 +55,7 @@ def get_current_user(
         )
     return user
 
-#control de acceso basado en roles RBAC 
+#control de acceso basado en roles RBAC
 
 class RoleChecker:
 

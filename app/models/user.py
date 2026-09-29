@@ -1,8 +1,9 @@
 from datetime import datetime
-from sqlalchemy import Column, Boolean, DateTime, ForeignKey, Integer, String, Table
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.db.base_class import Base
 
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Table
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.db.base_class import Base
 
 # Tabla asociativa Rol <-> Permiso
 rol_permiso = Table(

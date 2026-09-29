@@ -1,5 +1,7 @@
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, ConfigDict, Field
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
 
 class RolBase(BaseModel):
     nombre: str = Field(

@@ -139,7 +139,10 @@ def update_mission(
     response_model=MisionResponse,
     dependencies=[Depends(deps.require_guard_or_admin)],
     summary="Cancelar misión",
-    description="Cambia el estado de la misión a CANCELADA[cite: 2]. Accesible tanto por guardia como por admin[cite: 2].",
+    description=(
+        "Cambia el estado de la misión a CANCELADA. "
+        "Accesible tanto por guardia como por admin."
+    ),
 )
 def cancel_mission(
     id: int,
