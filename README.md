@@ -20,20 +20,56 @@ Proyecto integral de Backend, Simulación y Control desarrollado para la Faculta
 
 ## Tabla de Contenidos
 
-- [Guía de Desarrollo Local](#guía-de-desarrollo-local)
-  - [Requisitos Previos](#requisitos-previos)
-  - [Instalación](#instalación)
-  - [Variables de Entorno](#variables-de-entorno)
-  - [Correr el Servidor](#correr-el-servidor)
-  - [Ejecutar los Tests](#ejecutar-los-tests)
-  - [Linter](#linter)
-  - [Estructura del Proyecto](#estructura-del-proyecto)
+- [Documentación](#documentación)
+- [Inicio Rápido](#inicio-rápido)
 - [Miembros del Equipo](#miembros-del-equipo)
 - [Descripción de Arquitectura](#descripción-de-arquitectura)
 - [Product Backlog (Priorizado)](#product-backlog-priorizado)
 - [Cronograma de Ejecución (Roadmap)](#cronograma-de-ejecución-roadmap)
 - [Sprint 1: Arquitectura Base, Entornos y MVP](#sprint-1-arquitectura-base-entornos-y-mvp)
-- [Documentación Adicional](#documentación-adicional)
+
+---
+
+## Documentación
+
+| Documento | Descripción |
+|---|---|
+| [📖 API Reference](docs/API.md) | Todos los endpoints: request, response, códigos de error, permisos por rol |
+| [🛠 Guía de Desarrollo](docs/DEVELOPMENT.md) | Instalación, entorno local, tests, linter, migraciones, Git workflow |
+| [🏗 Arquitectura](docs/ARCHITECTURE.md) | Diagramas del sistema, modelo de datos, flujo de autenticación, stack |
+| [🚀 Despliegue](docs/DEPLOYMENT.md) | Docker, docker-compose, producción, variables de entorno |
+| [🛸 Simulación SITL](docs/SITL_SIMULATION.md) | ArduPilot SITL + MAVProxy + DroneKit para pruebas sin hardware |
+
+---
+
+## Inicio Rápido
+
+```bash
+# 1. Clonar y entrar
+git clone https://github.com/AngelCenArr/drones-backend.git
+cd drones-backend
+
+# 2. Entorno virtual y dependencias
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+
+# 3. Configurar variables de entorno
+cp .env.example .env   # edita DATABASE_URL y SECRET_KEY
+
+# 4. Levantar la DB
+docker-compose up -d
+alembic upgrade head
+
+# 5. Correr el servidor
+uvicorn app.main:app --reload
+# → http://localhost:8000/docs
+
+# 6. Ejecutar los tests (no requiere PostgreSQL)
+pytest
+# → 48 passed in ~23s
+```
+
+> Para instrucciones detalladas ver la [Guía de Desarrollo](docs/DEVELOPMENT.md).
 
 ---
 
@@ -332,6 +368,4 @@ Aprovisionar la infraestructura fundacional del proyecto, configurando los entor
 
 ---
 
-## Documentación Adicional
-
-- [Guía de Configuración: Entorno de Simulación SITL](docs/SITL_SIMULATION.md)
+> 📚 Toda la documentación técnica está en la carpeta [`docs/`](docs/).
