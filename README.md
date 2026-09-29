@@ -20,12 +20,239 @@ Proyecto integral de Backend, Simulación y Control desarrollado para la Faculta
 
 ## Tabla de Contenidos
 
+- [Guía de Desarrollo Local](#guía-de-desarrollo-local)
+  - [Requisitos Previos](#requisitos-previos)
+  - [Instalación](#instalación)
+  - [Variables de Entorno](#variables-de-entorno)
+  - [Correr el Servidor](#correr-el-servidor)
+  - [Ejecutar los Tests](#ejecutar-los-tests)
+  - [Linter](#linter)
+  - [Estructura del Proyecto](#estructura-del-proyecto)
 - [Miembros del Equipo](#miembros-del-equipo)
 - [Descripción de Arquitectura](#descripción-de-arquitectura)
 - [Product Backlog (Priorizado)](#product-backlog-priorizado)
 - [Cronograma de Ejecución (Roadmap)](#cronograma-de-ejecución-roadmap)
 - [Sprint 1: Arquitectura Base, Entornos y MVP](#sprint-1-arquitectura-base-entornos-y-mvp)
 - [Documentación Adicional](#documentación-adicional)
+
+---
+
+## Guía de Desarrollo Local
+
+### Requisitos Previos
+
+| Herramienta | Versión mínima | Notas |
+|---|---|---|
+| Python | 3.11+ | Se recomienda 3.12 o superior |
+| PostgreSQL | 15+ | Requerido para desarrollo y producción |
+| Docker + Compose | — | Opcional, para levantar la DB rápidamente |
+| Git | — | — |
+
+---
+
+### Instalación
+
+```bash
+# 1. Clonar el repositorio
+git clone https://github.com/AngelCenArr/drones-backend.git
+cd drones-backend
+
+# 2. Crear y activar el entorno virtual
+python3 -m venv venv
+source venv/bin/activate          # Linux / macOS
+# venv\Scripts\activate           # Windows
+
+# 3. Instalar dependencias
+pip install -r requirements.txt
+```
+
+---
+
+### Variables de Entorno
+
+Copia el archivo de ejemplo y edita los valores:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Descripción | Ejemplo |
+|---|---|---|
+| `DATABASE_URL` | Cadena de conexión a PostgreSQL | `postgresql://user:pass@localhost:5432/drone_db` |
+| `SECRET_KEY` | Clave secreta para firmar JWT | cadena aleatoria de 64 chars |
+| `ALGORITHM` | Algoritmo de firma JWT | `HS256` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Duración del token en minutos | `480` |
+
+> **Nota:** El archivo `.env` está en el `.gitignore` — nunca lo subas al repositorio.
+
+#### Levantar la base de datos con Docker (opcional)
+
+```bash
+docker-compose up -d
+```
+
+#### Aplicar migraciones
+
+```bash
+alembic upgrade head
+```
+
+---
+
+### Correr el Servidor
+
+```bash
+# Activar el entorno virtual primero
+source venv/bin/activate
+
+# Modo desarrollo (con hot-reload)
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+El servidor queda disponible en:
+
+| URL | Descripción |
+|---|---|
+| `http://localhost:8000` | Endpoint raíz (`{"status": "ok"}`) |
+| `http://localhost:8000/docs` | Swagger UI interactivo |
+| `http://localhost:8000/redoc` | Documentación ReDoc |
+| `http://localhost:8000/api/v1/` | Versión 1 de la API |
+
+---
+
+### Ejecutar los Tests
+
+Los tests usan una **base de datos SQLite en memoria** — no requieren PostgreSQL ni ninguna configuración extra.
+
+```bash
+# Activar el entorno virtual primero
+source venv/bin/activate
+
+# Correr toda la suite
+pytest
+
+# Con reporte detallado (ya configurado por defecto)
+pytest -v
+
+# Correr solo un archivo
+pytest tests/test_auth.py
+pytest tests/test_missions.py
+pytest tests/test_security.py
+
+# Correr una clase o test específico
+pytest tests/test_auth.py::TestLogin
+pytest tests/test_auth.py::TestLogin::test_login_admin_success
+
+# Con reporte de cobertura (requiere pytest-cov)
+pip install pytest-cov
+pytest --cov=app --cov-report=term-missing
+```
+
+#### Suite de tests actual
+
+| Archivo | Tests | Qué cubre |
+|---|---|---|
+| `tests/test_auth.py` | 15 | `POST /register`, `POST /login`, `GET /me` — éxito, errores de validación, RBAC |
+| `tests/test_missions.py` | 20 | CRUD completo de misiones — creación, listado, filtros, edición, cancelación, permisos |
+| `tests/test_security.py` | 9 | Hashing bcrypt (salt único, verify) y tokens JWT (subject, expiración, firma inválida) |
+| **Total** | **48** | |
+
+**Resultado esperado:**
+
+```
+==================== 48 passed in ~23s ====================
+```
+
+#### Estrategia de testing
+
+- **DB aislada**: cada test usa SQLite en memoria — sin efectos secundarios entre tests.
+- **Roles pre-seeded**: `conftest.py` crea los roles `ADMIN` y `GUARDIA` automáticamente.
+- **Sin dependencias externas**: no requiere PostgreSQL, Redis ni dronekit para correr los tests.
+
+---
+
+### Linter
+
+El proyecto usa [Ruff](https://docs.astral.sh/ruff/) para linting y formato:
+
+```bash
+# Verificar errores
+ruff check app/
+
+# Corregir automáticamente
+ruff check app/ --fix
+
+# Formatear el código
+ruff format app/
+```
+
+---
+
+### Estructura del Proyecto
+
+```
+drones-backend/
+│
+├── app/                          # Código fuente principal
+│   ├── main.py                   # Punto de entrada FastAPI
+│   ├── api/
+│   │   ├── deps.py               # Dependencias compartidas (get_db, RBAC)
+│   │   └── v1/
+│   │       ├── api.py            # Router principal v1
+│   │       └── endpoints/
+│   │           ├── auth.py       # POST /register, /login, GET /me
+│   │           ├── missions.py   # CRUD de misiones
+│   │           ├── drone.py      # Control de vuelo (connect, takeoff, RTL)
+│   │           ├── alerts.py     # (en desarrollo)
+│   │           ├── telemetry.py  # (en desarrollo)
+│   │           └── users.py      # (en desarrollo)
+│   ├── core/
+│   │   ├── config.py             # Configuración vía pydantic-settings
+│   │   └── security.py           # JWT y bcrypt
+│   ├── db/
+│   │   ├── base_class.py         # Base declarativa de SQLAlchemy
+│   │   └── session.py            # Engine y SessionLocal
+│   ├── models/                   # Modelos ORM (tablas)
+│   │   ├── user.py               # Usuario, Rol, Permiso
+│   │   └── mission.py            # Mision, Ruta (waypoints)
+│   ├── schemas/                  # Schemas Pydantic (request / response)
+│   │   ├── user.py
+│   │   ├── mission.py
+│   │   └── token.py
+│   └── services/
+│       ├── drone_service.py      # Wrapper de DroneKit (import lazy)
+│       └── mission_service.py    # (en desarrollo)
+│
+├── alembic/                      # Migraciones de base de datos
+│   └── versions/
+│
+├── tests/                        # Suite de tests
+│   ├── conftest.py               # Fixtures: DB SQLite, TestClient, usuarios
+│   ├── test_auth.py              # Tests de autenticación
+│   ├── test_missions.py          # Tests de misiones
+│   └── test_security.py          # Tests unitarios de seguridad
+│
+├── scripts/
+│   ├── drone_backend.py          # Script de integración DroneKit
+│   ├── run_mavproxy.sh           # Lanzar MAVProxy con mapa UAQ
+│   └── run_sitl.sh               # Lanzar simulador ArduPilot SITL
+│
+├── simulator/                    # Archivos generados por SITL (ignorados en git)
+│   ├── mav.parm
+│   ├── eeprom.bin
+│   └── mav.tlog
+│
+├── docs/
+│   └── SITL_SIMULATION.md        # Guía de configuración del simulador
+│
+├── .env                          # Variables de entorno locales (NO subir a git)
+├── .env.example                  # Plantilla de variables de entorno
+├── .gitignore
+├── requirements.txt              # Dependencias del proyecto
+├── pyproject.toml                # Configuración de Ruff y Pytest
+├── Dockerfile
+└── docker-compose.yml            # PostgreSQL para desarrollo local
+```
 
 ---
 
