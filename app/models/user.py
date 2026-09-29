@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Table
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -32,7 +32,7 @@ class Rol(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     nombre: Mapped[str] = mapped_column(String(50), unique=True, nullable=False) # 'ADMIN', 'GUARDIA'
     descripcion: Mapped[str] = mapped_column(String(255), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
 
     usuarios: Mapped[list["Usuario"]] = relationship("Usuario", back_populates="rol")
     permisos: Mapped[list["Permiso"]] = relationship("Permiso", secondary=rol_permiso, back_populates="roles")
@@ -47,6 +47,6 @@ class Usuario(Base):
     email: Mapped[str] = mapped_column(String(120), unique=True, index=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
 
     rol: Mapped["Rol"] = relationship("Rol", back_populates="usuarios")

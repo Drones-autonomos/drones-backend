@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import (
   DateTime,
@@ -30,7 +30,7 @@ class Mision(Base):
       DateTime, nullable=True
   )
   created_at: Mapped[datetime] = mapped_column(
-      DateTime, default=datetime.utcnow, nullable=False
+      DateTime, default=lambda: datetime.now(UTC), nullable=False
   )
 
   # Relaciones
