@@ -1,4 +1,5 @@
 from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -21,7 +22,7 @@ router = APIRouter()
         400: {"description": "El correo electrónico ya existe en el sistema"},
         404: {"description": "El rol_id especificado no existe"},
         422: {"description": "Error de validación en los campos enviados"},
-    }, ) 
+    }, )
 def register(user_in: UserCreate, db: Session = Depends(deps.get_db)):
     """Registra un nuevo usuario con rol asignado (guardia o administrador)."""
     # 1. Verificar si el email ya existe
