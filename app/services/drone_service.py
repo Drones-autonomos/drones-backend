@@ -1,17 +1,41 @@
 import logging
 import time
 
-from dronekit import VehicleMode
-from dronekit import connect as dronekit_connect
-
 logger = logging.getLogger(__name__)
+
+# dronekit es una dependencia opcional de simulación.
+# Se importa de forma lazy para que el servidor FastAPI pueda arrancar
+# en entornos sin dronekit (producción, CI, tests).
+try:
+    import collections
+    import collections.abc
+
+    # Parche para compatibilidad de dronekit con Python 3.10+
+    collections.MutableMapping = collections.abc.MutableMapping
+
+    from dronekit import VehicleMode
+    from dronekit import connect as dronekit_connect
+
+    _DRONEKIT_AVAILABLE = True
+except ImportError:
+    _DRONEKIT_AVAILABLE = False
+    logger.warning(
+        "dronekit no está instalado — los endpoints de control de vuelo "
+        "estarán deshabilitados. Instálalo con: pip install dronekit"
+    )
+
+
+def _require_dronekit():
+    if not _DRONEKIT_AVAILABLE:
+        raise RuntimeError("dronekit no está instalado. Ejecuta: pip install dronekit  (requiere entorno SITL)")
 
 
 class DroneService:
     def __init__(self):
         self.vehicle = None
 
-    def connect(self, connection_string="127.0.0.1:14550"):
+    def connect(self, connection_string: str = "127.0.0.1:14550") -> bool:
+        _require_dronekit()
         if self.vehicle:
             logger.info("El vehículo ya está conectado.")
             return True
@@ -24,7 +48,8 @@ class DroneService:
             logger.error(f"Error al conectar con el dron: {e}")
             return False
 
-    def arm_and_takeoff(self, target_altitude):
+    def arm_and_takeoff(self, target_altitude: float) -> bool:
+        _require_dronekit()
         if not self.vehicle:
             logger.error("Vehículo no conectado.")
             return False
@@ -46,14 +71,16 @@ class DroneService:
         self.vehicle.simple_takeoff(target_altitude)
 
         while True:
-            logger.info(f" Altitud: {self.vehicle.location.global_relative_frame.alt}")
-            if self.vehicle.location.global_relative_frame.alt >= target_altitude * 0.95:
+            alt = self.vehicle.location.global_relative_frame.alt
+            logger.info(f" Altitud: {alt}")
+            if alt >= target_altitude * 0.95:
                 logger.info("Altitud objetivo alcanzada")
                 break
             time.sleep(1)
         return True
 
-    def return_to_launch(self):
+    def return_to_launch(self) -> bool:
+        _require_dronekit()
         if not self.vehicle:
             logger.error("Vehículo no conectado.")
             return False
@@ -61,7 +88,7 @@ class DroneService:
         self.vehicle.mode = VehicleMode("RTL")
         return True
 
-    def close(self):
+    def close(self) -> None:
         if self.vehicle:
             logger.info("Cerrando conexión con el vehículo")
             self.vehicle.close()

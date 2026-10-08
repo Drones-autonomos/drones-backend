@@ -1,4 +1,5 @@
 from collections.abc import Generator
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -10,9 +11,8 @@ from app.models.user import Usuario
 from app.schemas.token import TokenPayload
 
 # Define que la URL de obtención de token es /api/v1/auth/login
-reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/auth/login"
-)
+reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
+
 
 def get_db() -> Generator[Session, None, None]:
     """Crea una sesión de base de datos por petición y la cierra al finalizar."""
@@ -22,10 +22,8 @@ def get_db() -> Generator[Session, None, None]:
     finally:
         db.close()
 
-def get_current_user(
-    db: Session = Depends(get_db),
-    token: str = Depends(reusable_oauth2)
-) -> Usuario:
+
+def get_current_user(db: Session = Depends(get_db), token: str = Depends(reusable_oauth2)) -> Usuario:
     """Valida el token JWT y extrae al usuario autenticado de la base de datos."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -33,43 +31,36 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception
         token_data = TokenPayload(sub=user_id)
-    except JWTError:
-        raise credentials_exception
+    except JWTError as exc:
+        raise credentials_exception from exc
 
     user = db.query(Usuario).filter(Usuario.id == int(token_data.sub)).first()
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
     if not user.activo:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Usuario inactivo"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuario inactivo")
     return user
 
-#control de acceso basado en roles RBAC 
+
+# control de acceso basado en roles RBAC
+
 
 class RoleChecker:
+    def __init__(self, allowed_roles: list[str]):
+        self.allowed_roles = allowed_roles
 
-  def __init__(self, allowed_roles: list[str]):
-    self.allowed_roles = allowed_roles
-
-  def __call__(
-      self, current_user: Usuario = Depends(get_current_user)
-  ) -> Usuario:
-    if not current_user.rol or current_user.rol.nombre not in self.allowed_roles:
-      raise HTTPException(
-          status_code=status.HTTP_403_FORBIDDEN,
-          detail="Operación no permitida para el rol asignado.",
-      )
-    return current_user
+    def __call__(self, current_user: Usuario = Depends(get_current_user)) -> Usuario:
+        if not current_user.rol or current_user.rol.nombre not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Operación no permitida para el rol asignado.",
+            )
+        return current_user
 
 
 # Dependencias exportadas para los endpoints
