@@ -9,8 +9,6 @@ Cubre:
 - POST /api/v1/missions/{id}/cancel → cancelar misión, cancelar CANCELADA (error)
 """
 
-import pytest
-
 # ---------------------------------------------------------------------------
 # Payload de misión válida con 2 waypoints mínimos
 # ---------------------------------------------------------------------------

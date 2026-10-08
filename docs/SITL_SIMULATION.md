@@ -35,7 +35,7 @@ Necesitas **dos terminales** simultáneas.
 ### Terminal 1 — Iniciar el Simulador SITL
 
 ```bash
-./run_sitl.sh
+./scripts/run_sitl.sh
 ```
 
 Este script ejecuta el binario ArduPilot SITL directamente en las coordenadas del Campus Juriquilla UAQ (`20.70428, -100.44358`). Espera hasta ver la línea:
@@ -49,7 +49,7 @@ Waiting for connection ....
 ### Terminal 2 — Iniciar MAVProxy con Mapa
 
 ```bash
-./run_mavproxy.sh
+./scripts/run_mavproxy.sh
 ```
 
 Este script lanza MAVProxy con:

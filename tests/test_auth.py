@@ -7,8 +7,6 @@ Cubre:
 - GET  /api/v1/auth/me        → perfil con token válido, sin token, token inválido
 """
 
-import pytest
-
 
 # =============================================================================
 # REGISTER

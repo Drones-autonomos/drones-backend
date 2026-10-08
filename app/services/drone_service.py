@@ -21,10 +21,7 @@ except ImportError:
 
 def _require_dronekit():
     if not _DRONEKIT_AVAILABLE:
-        raise RuntimeError(
-            "dronekit no está instalado. "
-            "Ejecuta: pip install dronekit  (requiere entorno SITL)"
-        )
+        raise RuntimeError("dronekit no está instalado. Ejecuta: pip install dronekit  (requiere entorno SITL)")
 
 
 class DroneService:
@@ -94,4 +91,3 @@ class DroneService:
 
 # Instancia global del servicio
 drone_service = DroneService()
-
