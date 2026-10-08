@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 try:
     import collections
     import collections.abc
+
     # Parche para compatibilidad de dronekit con Python 3.10+
     collections.MutableMapping = collections.abc.MutableMapping
 
