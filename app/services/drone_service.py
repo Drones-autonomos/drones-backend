@@ -7,6 +7,11 @@ logger = logging.getLogger(__name__)
 # Se importa de forma lazy para que el servidor FastAPI pueda arrancar
 # en entornos sin dronekit (producción, CI, tests).
 try:
+    import collections
+    import collections.abc
+    # Parche para compatibilidad de dronekit con Python 3.10+
+    collections.MutableMapping = collections.abc.MutableMapping
+
     from dronekit import VehicleMode
     from dronekit import connect as dronekit_connect
 
