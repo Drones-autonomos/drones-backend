@@ -1,5 +1,9 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, missions, drone, detections
+from app.api.v1.endpoints.auth import router as auth_router
+from app.api.v1.endpoints.detections import router as detections_router
+from app.api.v1.endpoints.event import router as events_router
+from app.api.v1.endpoints.missions import router as missions_router
+from app.api.v1.endpoints import auth, missions, drone, detections, event
 
 api_router = APIRouter()
 
@@ -22,3 +26,4 @@ api_router.include_router(auth.router, prefix="/auth", tags=["Autenticación"])
 api_router.include_router(missions.router, prefix="/missions", tags=["Misiones"])
 api_router.include_router(drone.router, prefix="/drone", tags=["Control de Vuelo"])
 api_router.include_router(detections.router, prefix="/detections", tags=["Detecciones"])
+api_router.include_router(event.router, prefix="/events", tags=["Eventos"])
