@@ -1,0 +1,33 @@
+$kind: http-request
+url: http://localhost:8000/api/v1/auth/login
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"email\": \"admin@facultad.edu.mx\",\r
+
+    \    \"password\": \"PasswordSegura123!\"\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: "pm.test(\"Status 200 - Login exitoso\", function () {\r
+
+      \    pm.response.to.have.status(200);\r
+
+      });\r
+
+      \r
+
+      const data = pm.response.json();\r
+
+      if (data.access_token) {\r
+
+      \    pm.environment.set(\"admin_token\", data.access_token);\r
+
+      \    console.log(\"Token de Admin guardado en el entorno.\");\r
+
+      }"
+    language: text/javascript
+order: 1488
