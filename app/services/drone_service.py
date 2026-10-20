@@ -1,7 +1,16 @@
 import logging
 import time
 
-from dronekit import VehicleMode
+# --- Parche de compatibilidad Python 3.10+ para DroneKit ---
+import collections
+import collections.abc
+
+collections.MutableMapping = collections.abc.MutableMapping
+collections.Mapping = collections.abc.Mapping
+collections.Iterable = collections.abc.Iterable
+# ------------------------------------------------------------
+
+from dronekit import VehicleMode  # Tu importación habitual continúa aquí abajo
 from dronekit import connect as dronekit_connect
 
 logger = logging.getLogger(__name__)
