@@ -131,7 +131,7 @@ source venv/bin/activate
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 # Servidor sin hot-reload (staging / producción local)
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 ```
 
 El servidor queda disponible en:
@@ -189,13 +189,15 @@ pytest --cov=app --cov-report=html    # Genera htmlcov/index.html
 |---|---|---|
 | `tests/conftest.py` | (fixtures) | DB en memoria, TestClient, roles, usuarios, tokens |
 | `tests/test_auth.py` | 15 | Registro, login, perfil `/me`, validaciones, RBAC |
-| `tests/test_missions.py` | 20 | CRUD de misiones, filtros, paginación, permisos |
+| `tests/test_missions.py` | 24 | CRUD de misiones, filtros, paginación, permisos |
 | `tests/test_security.py` | 9 | bcrypt (hash, verify, salt), JWT (subject, exp, firma) |
-| **Total** | **48** | |
+| `tests/test_access.py` | 19 | Permisos, alturas y bootstrap |
+| `tests/test_config.py` | 3 | Clave JWT obligatoria y longitud mínima |
+| **Total** | **70** | |
 
 **Resultado esperado:**
 ```
-==================== 48 passed in ~23s ====================
+==================== 70 passed ====================
 ```
 
 ### Estrategia de testing
@@ -295,7 +297,7 @@ git commit -m "test: agregar tests de cancelación de misiones"
 
 # Antes de crear un PR, asegúrate de pasar:
 ruff check app/         # 0 errores de linting
-pytest                  # 48 tests passing
+pytest                  # 70 tests
 
 # Crear PR hacia main
 git push origin feature/nombre-del-feature
@@ -334,3 +336,11 @@ Consulta la pestaña **Actions** en GitHub:
 `https://github.com/AngelCenArr/drones-backend/actions`
 
 > Si el CI falla en tu PR, revisa los logs del paso que falló antes de pedir review.
+
+## Inicialización de administradores
+
+`SECRET_KEY` es obligatoria y debe tener al menos 32 caracteres. Genera un valor con `openssl rand -hex 32` y guárdalo en `.env`; la plantilla no contiene una clave.
+
+Después de `alembic upgrade head`, ejecuta `python -m app.bootstrap_admin`. El comando solicita la contraseña sin mostrarla, crea los roles necesarios y rechaza la operación si ya existe un administrador. Ejecuta este paso una sola vez, antes de abrir la API a clientes. Los siguientes usuarios se crean en `/api/v1/auth/register` con el token de un ADMIN.
+
+Las pruebas generan su propia clave y usan SQLite; no necesitan copiar `.env.example`.
