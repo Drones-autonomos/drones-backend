@@ -34,10 +34,11 @@ Base URL: `http://localhost:8000/api/v1`
 
 ### POST /auth/register
 
-Registra un nuevo usuario en el sistema.
+Registra un nuevo usuario en el sistema. Para crear el primer administrador, ejecuta `python -m app.bootstrap_admin` tras aplicar las migraciones.
 
-**Requiere autenticación:** No  
-**Roles permitidos:** Público
+**Requiere autenticación:** Sí
+
+**Roles permitidos:** ADMIN
 
 **Request Body**
 
@@ -78,6 +79,8 @@ Registra un nuevo usuario en el sistema.
 
 | Código | Causa |
 |---|---|
+| `401` | Falta autenticación válida |
+| `403` | El usuario no es administrador |
 | `400` | El correo electrónico ya está registrado |
 | `404` | El `rol_id` especificado no existe |
 | `422` | Error de validación (nombre muy corto, password corta, email inválido) |
@@ -357,7 +360,7 @@ Cancela una misión (cambia su estado a `CANCELADA`).
 
 Establece conexión con el dron via MAVLink.
 
-**Requiere autenticación:** No (por ahora)
+**Requiere autenticación:** Sí; rol ADMIN.
 
 **Request Body**
 
@@ -377,7 +380,9 @@ Establece conexión con el dron via MAVLink.
 
 ### POST /drone/takeoff
 
-Arma los motores y ejecuta el despegue a la altitud especificada.
+Arma los motores y ejecuta el despegue a la altitud especificada (2–200 metros).
+
+**Requiere autenticación:** Sí; rol ADMIN.
 
 **Request Body**
 
@@ -401,6 +406,8 @@ Arma los motores y ejecuta el despegue a la altitud especificada.
 
 Envía el comando **Return to Launch** (volver a la base y aterrizar).
 
+**Requiere autenticación:** Sí; rol ADMIN o GUARDIA.
+
 **Response 200 — OK**
 
 ```json
@@ -413,7 +420,7 @@ Envía el comando **Return to Launch** (volver a la base y aterrizar).
 
 | Endpoint | ADMIN | GUARDIA | Público |
 |---|:---:|:---:|:---:|
-| `POST /auth/register` | ✅ | ✅ | ✅ |
+| `POST /auth/register` | ✅ | ❌ | ❌ |
 | `POST /auth/login` | ✅ | ✅ | ✅ |
 | `GET /auth/me` | ✅ | ✅ | ❌ |
 | `POST /missions/` | ✅ | ❌ | ❌ |
@@ -421,7 +428,9 @@ Envía el comando **Return to Launch** (volver a la base y aterrizar).
 | `GET /missions/{id}` | ✅ | ✅ | ❌ |
 | `PUT /missions/{id}` | ✅ | ❌ | ❌ |
 | `POST /missions/{id}/cancel` | ✅ | ✅ | ❌ |
-| `POST /drone/*` | ✅ | ✅ | ❌ |
+| `POST /drone/connect` | ✅ | ❌ | ❌ |
+| `POST /drone/takeoff` | ✅ | ❌ | ❌ |
+| `POST /drone/rtl` | ✅ | ✅ | ❌ |
 
 ---
 

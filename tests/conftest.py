@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 """
 conftest.py — Fixtures compartidos para toda la suite de tests.
 
@@ -7,6 +8,13 @@ Estrategia:
 - El TestClient de FastAPI sobreescribe la dependencia get_db para usar
   la sesión de test en lugar de la sesión de producción.
 """
+
+import os
+import secrets
+
+# Configuración aislada: las pruebas no dependen de los secretos del .env local.
+os.environ["SECRET_KEY"] = secrets.token_hex(32)
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 import pytest
 from fastapi.testclient import TestClient

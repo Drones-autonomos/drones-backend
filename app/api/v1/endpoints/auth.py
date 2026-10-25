@@ -17,8 +17,9 @@ router = APIRouter()
     "/register",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(deps.require_admin)],
     summary="Registrar usuario",
-    description=("Crea un nuevo usuario en el sistema con rol asignado (guardia o administrador)."),
+    description=("Crea un usuario con rol asignado. Requiere ADMIN; el primer administrador se crea por CLI."),
     responses={
         201: {"description": "Usuario registrado exitosamente"},
         400: {"description": "El correo electrónico ya existe en el sistema"},
