@@ -47,24 +47,7 @@ DATABASE_URL=postgresql://drone_user:drone_password@localhost:5432/drone_db
 
 El `Dockerfile` actual en la raíz del proyecto:
 
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y gcc libpq-dev && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-EXPOSE 8000
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-> **Nota:** El Dockerfile actual instala dependencias directamente via `pip install` en el `RUN`. Se recomienda actualizar para usar `requirements.txt` (ya hecho en el ejemplo de arriba).
+Consulta el [Dockerfile](../Dockerfile): instala `requirements.txt`, ejecuta la API como usuario sin privilegios y excluye secretos mediante `.dockerignore`.
 
 ### Construir la imagen
 
@@ -119,7 +102,7 @@ services:
         condition: service_healthy
     command: >
       sh -c "alembic upgrade head &&
-             uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4"
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1"
 
 volumes:
   postgres_data:
@@ -153,7 +136,7 @@ scp .env.prod usuario@servidor:/path/drones-backend/.env
 - [ ] `SECRET_KEY` es aleatoria y tiene al menos 32 caracteres
 - [ ] `DATABASE_URL` apunta a la DB de producción
 - [ ] El `.env` **no está** en el repositorio de Git
-- [ ] `DEBUG=False` (o variable equivalente)
+- [ ] Se creó el primer administrador con `python -m app.bootstrap_admin`
 - [ ] PostgreSQL tiene contraseña fuerte y no expone el puerto 5432 públicamente
 - [ ] Se aplican las migraciones (`alembic upgrade head`) antes de arrancar
 
@@ -167,9 +150,13 @@ curl http://localhost:8000/
 # Respuesta esperada: {"status":"ok","message":"API Drones Autónomos activa"}
 
 # Ver rutas disponibles
-curl http://localhost:8000/openapi.json | python3 -m json.tool | grep '"path"'
+curl http://localhost:8000/api/v1/openapi.json | python3 -m json.tool | grep '"path"'
 
 # Abrir Swagger UI en el navegador
 open http://localhost:8000/docs     # macOS
 xdg-open http://localhost:8000/docs # Linux
 ```
+
+## Validación del contenedor en CI
+
+El workflow de contenedor construye la imagen y comprueba una respuesta HTTP del servidor. No publica ni despliega. Esta comprobación usa SQLite y no valida PostgreSQL ni SITL. Usa un solo worker mientras la conexión DroneKit se almacene en memoria del proceso.

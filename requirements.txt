@@ -40,4 +40,5 @@ pytest-asyncio>=0.23.0
 # Drone / MAVLink (simulación)
 # =============================================================================
 dronekit>=2.9.2
+future>=1.0.0  # DroneKit importa past.builtins sin declarar esta dependencia
 MAVProxy>=1.8.0

@@ -1,6 +1,8 @@
-name: Backend CD (Docker Build Check)
+name: Backend Container (Build and Smoke Test)
 
 on:
+  pull_request:
+    branches: [ "main", "develop" ]
   push:
     branches: [ "main" ]
 
@@ -22,6 +24,25 @@ jobs:
         with:
           context: .
           push: false
+          load: true
           tags: drones-backend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Comprobar arranque HTTP de la imagen
+        shell: bash
+        run: |
+          export SECRET_KEY="$(openssl rand -hex 32)"
+          docker run --rm -e SECRET_KEY -e DATABASE_URL=sqlite:///:memory: \
+            drones-backend:latest python -c \
+            'from app.services.drone_service import _require_dronekit; _require_dronekit()'
+          docker run -d --name drones-smoke -p 127.0.0.1:8000:8000 \
+            -e SECRET_KEY -e DATABASE_URL=sqlite:///:memory: drones-backend:latest
+          trap 'docker logs drones-smoke; docker rm -f drones-smoke' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8000/; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
