@@ -28,3 +28,16 @@ known-first-party = ["app"]
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.pytest.ini_options]
+# Directorio de tests y patrones
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# Modo de asyncio (strict = requiere marcar cada test async explícitamente)
+asyncio_mode = "strict"
+
+# Opciones de salida
+addopts = "-v --tb=short --no-header"

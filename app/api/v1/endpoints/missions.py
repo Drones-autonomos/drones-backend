@@ -26,31 +26,31 @@ def create_mission(
     db: Session = Depends(deps.get_db),
     current_user: Usuario = Depends(deps.require_admin),
 ):
-  # 1. Crear la cabecera de la misión asociada al usuario actual
-  nueva_mision = Mision(
-      creado_por=current_user.id,
-      nombre=mission_in.nombre,
-      descripcion=mission_in.descripcion,
-      horario_inicio_programado=mission_in.horario_inicio_programado,
-      estado="PROGRAMADA",
-  )
-  db.add(nueva_mision)
-  db.flush()  # Genera el ID de la misión sin hacer commit aún
-
-  # 2. Crear los waypoints vinculados
-  for wp in mission_in.waypoints:
-    nuevo_wp = Ruta(
-        mision_id=nueva_mision.id,
-        orden_waypoint=wp.orden_waypoint,
-        latitud=wp.latitud,
-        longitud=wp.longitud,
-        altitud_metros=wp.altitud_metros,
+    # 1. Crear la cabecera de la misión asociada al usuario actual
+    nueva_mision = Mision(
+        creado_por=current_user.id,
+        nombre=mission_in.nombre,
+        descripcion=mission_in.descripcion,
+        horario_inicio_programado=mission_in.horario_inicio_programado,
+        estado="PROGRAMADA",
     )
-    db.add(nuevo_wp)
+    db.add(nueva_mision)
+    db.flush()  # Genera el ID de la misión sin hacer commit aún
 
-  db.commit()
-  db.refresh(nueva_mision)
-  return nueva_mision
+    # 2. Crear los waypoints vinculados
+    for wp in mission_in.waypoints:
+        nuevo_wp = Ruta(
+            mision_id=nueva_mision.id,
+            orden_waypoint=wp.orden_waypoint,
+            latitud=wp.latitud,
+            longitud=wp.longitud,
+            altitud_metros=wp.altitud_metros,
+        )
+        db.add(nuevo_wp)
+
+    db.commit()
+    db.refresh(nueva_mision)
+    return nueva_mision
 
 
 @router.get(
@@ -70,13 +70,11 @@ def list_missions(
     db: Session = Depends(deps.get_db),
     current_user: Usuario = Depends(deps.require_guard_or_admin),
 ):
-  query = db.query(Mision)
-  if estado:
-    query = query.filter(Mision.estado == estado.upper())
-  misiones = (
-      query.order_by(Mision.created_at.desc()).offset(skip).limit(limit).all()
-  )
-  return misiones
+    query = db.query(Mision)
+    if estado:
+        query = query.filter(Mision.estado == estado.upper())
+    misiones = query.order_by(Mision.created_at.desc()).offset(skip).limit(limit).all()
+    return misiones
 
 
 @router.get(
@@ -90,12 +88,10 @@ def get_mission(
     db: Session = Depends(deps.get_db),
     current_user: Usuario = Depends(deps.require_guard_or_admin),
 ):
-  mision = db.query(Mision).filter(Mision.id == id).first()
-  if not mision:
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND, detail="Misión no encontrada"
-    )
-  return mision
+    mision = db.query(Mision).filter(Mision.id == id).first()
+    if not mision:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Misión no encontrada")
+    return mision
 
 
 @router.put(
@@ -110,28 +106,23 @@ def update_mission(
     db: Session = Depends(deps.get_db),
     current_user: Usuario = Depends(deps.require_admin),
 ):
-  mision = db.query(Mision).filter(Mision.id == id).first()
-  if not mision:
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND, detail="Misión no encontrada"
-    )
+    mision = db.query(Mision).filter(Mision.id == id).first()
+    if not mision:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Misión no encontrada")
 
-  if mision.estado != "PROGRAMADA":
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail=(
-            "No se puede modificar una misión que ya no está en estado"
-            " PROGRAMADA"
-        ),
-    )
+    if mision.estado != "PROGRAMADA":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=("No se puede modificar una misión que ya no está en estado PROGRAMADA"),
+        )
 
-  update_data = mission_in.model_dump(exclude_unset=True)
-  for field, value in update_data.items():
-    setattr(mision, field, value)
+    update_data = mission_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(mision, field, value)
 
-  db.commit()
-  db.refresh(mision)
-  return mision
+    db.commit()
+    db.refresh(mision)
+    return mision
 
 
 @router.post(
@@ -139,26 +130,24 @@ def update_mission(
     response_model=MisionResponse,
     dependencies=[Depends(deps.require_guard_or_admin)],
     summary="Cancelar misión",
-    description="Cambia el estado de la misión a CANCELADA[cite: 2]. Accesible tanto por guardia como por admin[cite: 2].",
+    description=("Cambia el estado de la misión a CANCELADA. Accesible tanto por guardia como por admin."),
 )
 def cancel_mission(
     id: int,
     db: Session = Depends(deps.get_db),
     current_user: Usuario = Depends(deps.require_guard_or_admin),
 ):
-  mision = db.query(Mision).filter(Mision.id == id).first()
-  if not mision:
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND, detail="Misión no encontrada"
-    )
+    mision = db.query(Mision).filter(Mision.id == id).first()
+    if not mision:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Misión no encontrada")
 
-  if mision.estado in ["FINALIZADA", "CANCELADA"]:
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail=f"La misión ya no puede ser cancelada (estado actual: {mision.estado})",
-    )
+    if mision.estado in ["FINALIZADA", "CANCELADA"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"La misión ya no puede ser cancelada (estado actual: {mision.estado})",
+        )
 
-  mision.estado = "CANCELADA"
-  db.commit()
-  db.refresh(mision)
-  return mision
+    mision.estado = "CANCELADA"
+    db.commit()
+    db.refresh(mision)
+    return mision
