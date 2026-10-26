@@ -194,12 +194,15 @@ pytest --cov=app --cov-report=term-missing
 | `tests/test_security.py` | 9 | Hashing bcrypt (salt único, verify) y tokens JWT (subject, expiración, firma inválida) |
 | `tests/test_access.py` | 19 | Permisos de vuelo y registro, validación de altura y bootstrap |
 | `tests/test_config.py` | 3 | Clave JWT obligatoria y longitud mínima |
-| **Total** | **70** | |
+| `tests/test_drone_navigation.py` | 9 | Navegación, tiempos máximos y telemetría |
+| `tests/test_mission_execution.py` | 31 | Ejecución, cancelación, horarios, recuperación y permisos |
+| `tests/test_migration_execution.py` | 1 | Migración conservando datos existentes |
+| **Total** | **111** | |
 
 **Resultado esperado:**
 
 ```
-==================== 70 passed ====================
+==================== 111 passed ====================
 ```
 
 #### Estrategia de testing
@@ -376,3 +379,7 @@ Aprovisionar la infraestructura fundacional del proyecto, configurando los entor
 ## Estabilización de la base
 
 El registro de usuarios requiere ADMIN. Conectar y despegar requiere ADMIN; RTL permite ADMIN y GUARDIA. La clave JWT es obligatoria y el contenedor usa las dependencias de `requirements.txt`. Consulta el [plan por fases y estado de validación](docs/WORK_PLAN.md).
+
+## Misiones dinámicas
+
+Aplicar `alembic upgrade head` antes de iniciar esta versión. Las rutas guardadas se ejecutan con `POST /api/v1/missions/{id}/start` (ADMIN); el progreso se consulta en el detalle de la misión. Usar una única instancia de control con un solo worker. La ejecución por horario es opcional mediante `MISSION_SCHEDULER_ENABLED=true` y está desactivada por defecto. Ver [ejecución, cancelación y recuperación](docs/MISSION_EXECUTION.md).

@@ -5,8 +5,8 @@ Revisión inicial: 25 de octubre de 2026. Alcance: este repositorio backend.
 | Fase | Entregable | Estado |
 |---|---|---|
 | 1. Base estable | Permisos, configuración obligatoria, bootstrap local, contenedor verificable y demo SITL | En curso |
-| 2. Misiones dinámicas | Ejecutor de waypoints persistidos, inicio por API y horario, progreso y estados | Pendiente; existe persistencia de rutas |
-| 3. Telemetría y cancelación | Estado del vehículo, interrupción con RTL confirmado, tiempos máximos y desconexiones | Pendiente; existen conexión, despegue y RTL independientes |
+| 2. Misiones dinámicas | Ejecutor de waypoints persistidos, inicio por API y horario, progreso y estados | Implementada; validación SITL pendiente |
+| 3. Telemetría y cancelación | Estado del vehículo, interrupción con RTL confirmado, tiempos máximos y desconexiones | Parcial: cancelación con RTL, tiempos máximos y recuperación implementados; falta exponer telemetría |
 | 4. Integración de vuelo | Pruebas PostgreSQL + SITL, documentación y demo integrada | Pendiente; existen pruebas API + SQLite |
 | 5. Video | Fuente simulada, servidor y reproducción, reconexión y medición de latencia | Pendiente |
 | 6. Detección | Pipeline de frames, personas, humo y evaluación con datos separados | Pendiente |
@@ -43,3 +43,12 @@ Revisión inicial: 25 de octubre de 2026. Alcance: este repositorio backend.
 6. Fase 7: generar una alerta consultable con misión, ubicación, tiempo y evidencia; medir latencias p50/p95 y evitar alertas duplicadas.
 
 No se asignan fechas hasta conocer disponibilidad del equipo y fuente de video. El bloque de video puede avanzar en paralelo al vuelo tras acordar contratos de integración.
+
+
+## Avance de fase 2
+
+Implementado el ejecutor de rutas persistidas, inicio manual por API, progreso y resultados en BD, exclusión de vuelos simultáneos y planificador opcional. La migración `6bf21ac304de` añade una reserva exclusiva del vehículo que se conserva si no se confirma aterrizaje. Se adelantó la cancelación mínima de fase 3 para poder interrumpir rutas y recuperar reservas tras reinicios.
+
+La migración se verificó en SQLite con upgrade, downgrade y nuevo upgrade conservando una misión previa. El flujo de vuelo está probado con dobles de vehículo e hilo real; todavía no hay evidencia nueva de SITL ni integración PostgreSQL + SITL. Las fases 1 y 2 conservan pendiente esa aceptación de vuelo. Instrucciones en [MISSION_EXECUTION.md](MISSION_EXECUTION.md).
+
+Verificación de fase 2: 111 pruebas aprobadas localmente; Ruff y formato aprobados. Imagen `drones-backend:phase2-review` construida localmente.

@@ -193,11 +193,14 @@ pytest --cov=app --cov-report=html    # Genera htmlcov/index.html
 | `tests/test_security.py` | 9 | bcrypt (hash, verify, salt), JWT (subject, exp, firma) |
 | `tests/test_access.py` | 19 | Permisos, alturas y bootstrap |
 | `tests/test_config.py` | 3 | Clave JWT obligatoria y longitud mínima |
-| **Total** | **70** | |
+| `tests/test_drone_navigation.py` | 9 | Navegación, tiempos máximos y telemetría |
+| `tests/test_mission_execution.py` | 31 | Ejecución, cancelación, horarios, recuperación y permisos |
+| `tests/test_migration_execution.py` | 1 | Migración conservando datos existentes |
+| **Total** | **111** | |
 
 **Resultado esperado:**
 ```
-==================== 70 passed ====================
+==================== 111 passed ====================
 ```
 
 ### Estrategia de testing
@@ -297,7 +300,7 @@ git commit -m "test: agregar tests de cancelación de misiones"
 
 # Antes de crear un PR, asegúrate de pasar:
 ruff check app/         # 0 errores de linting
-pytest                  # 70 tests
+pytest                  # 111 tests
 
 # Crear PR hacia main
 git push origin feature/nombre-del-feature

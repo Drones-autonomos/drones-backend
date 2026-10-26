@@ -411,7 +411,7 @@ Envía el comando **Return to Launch** (volver a la base y aterrizar).
 **Response 200 — OK**
 
 ```json
-{ "message": "Regresando a base" }
+{ "message": "RTL solicitado; consulta la misión para confirmar el aterrizaje" }
 ```
 
 ---
@@ -428,6 +428,8 @@ Envía el comando **Return to Launch** (volver a la base y aterrizar).
 | `GET /missions/{id}` | ✅ | ✅ | ❌ |
 | `PUT /missions/{id}` | ✅ | ❌ | ❌ |
 | `POST /missions/{id}/cancel` | ✅ | ✅ | ❌ |
+| `POST /missions/{id}/start` | ✅ | ❌ | ❌ |
+| `POST /missions/{id}/confirm-landed` | ✅ | ❌ | ❌ |
 | `POST /drone/connect` | ✅ | ❌ | ❌ |
 | `POST /drone/takeoff` | ✅ | ❌ | ❌ |
 | `POST /drone/rtl` | ✅ | ✅ | ❌ |
@@ -468,3 +470,16 @@ Los errores de validación (422) incluyen detalles por campo:
 | `404` | Recurso no encontrado |
 | `422` | Error de validación del body/query |
 | `500` | Error interno del servidor |
+
+
+## Ejecución de misiones (fase 2)
+
+| Endpoint | Rol | Respuesta |
+|---|---|---|
+| `POST /missions/{id}/start` | ADMIN | 202: ejecución en segundo plano |
+| `POST /missions/{id}/confirm-landed` | ADMIN | 200: libera una reserva huérfana tras comprobar aterrizaje |
+| `POST /missions/{id}/cancel` | ADMIN o GUARDIA | 200: CANCELADA si no inició; CANCELANDO si está ejecutándose |
+
+`GET /missions/{id}` incluye `waypoints_completados`, `iniciada_at`, `finalizada_at` y `error_ejecucion`. Los estados adicionales son `CANCELANDO`, `FALLIDA` y `RECUPERACION`. Inicio devuelve 404 si no existe la misión, 409 si no está programada o el vehículo está reservado, 422 para una ruta histórica inválida y 503 si el dron no está listo. Recuperación devuelve 409 si aún existe un ejecutor o no hay reserva y 503 si no se confirma que el vehículo está en tierra.
+
+Los waypoints deben tener orden único y consecutivo desde 1. Las fechas con zona se convierten a UTC; sin zona se interpretan como UTC. El planificador está desactivado por defecto. Ver [ejecución de misiones](MISSION_EXECUTION.md) para configuración, estados y recuperación.
