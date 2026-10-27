@@ -7,9 +7,13 @@ body:
 
     \    \"email\": \"admin@facultad.edu.mx\",\r
 
-    \    \"password\": \"PasswordSegura123!\"\r
+    \    \"password\": \"PsswrdSegura123!\"\r
 
     }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{json_web_token_0xho}}"
 scripts:
   - type: afterResponse
     code: "pm.test(\"Status 200 - Login exitoso\", function () {\r
@@ -26,8 +30,9 @@ scripts:
 
       \    pm.environment.set(\"admin_token\", data.access_token);\r
 
-      \    console.log(\"Token de Admin guardado en el entorno.\");\r
+      \    console.log(\"admin_token actualizado automaticamente.\");\r
 
       }"
     language: text/javascript
+examples: .resources/Login Admin.resources/examples
 order: 1488

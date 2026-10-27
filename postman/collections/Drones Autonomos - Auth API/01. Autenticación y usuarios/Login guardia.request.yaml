@@ -1,0 +1,26 @@
+$kind: http-request
+url: http://localhost:8000/api/v1/auth/login
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"email\": \"guardia@facultad.edu.mx\",\r
+
+    \    \"password\": \"PasswordSegura123!\"\r
+
+    }"
+auth:
+  type: bearer
+scripts:
+  - type: afterResponse
+    code: "const data = pm.response.json();\r
+
+      if (data.access_token) {\r
+
+      \    pm.environment.set(\"guardia_token\", data.access_token);\r
+
+      }"
+    language: text/javascript
+examples: .resources/Login guardia.resources/examples
+order: 2000

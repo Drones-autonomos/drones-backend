@@ -1,0 +1,12 @@
+$kind: http-request
+url: http://localhost:8000/api/v1/missions/?estado=PROGRAMADA&skip=0&limit=50
+method: GET
+queryParams:
+  estado: PROGRAMADA
+  skip: "0"
+  limit: "50"
+auth:
+  type: bearer
+  credentials:
+    token: "{{json_web_token_0ekz}}"
+order: 1041681596571479
