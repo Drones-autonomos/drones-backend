@@ -1,0 +1,15 @@
+$kind: http-request
+url: https://localhost:8000/api/v1/events//status
+method: PATCH
+body:
+  type: json
+  content: "{\r
+
+    \  \"estado\": \"EN_REVISION\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{json_web_token_0ekz}}"
+order: 3000

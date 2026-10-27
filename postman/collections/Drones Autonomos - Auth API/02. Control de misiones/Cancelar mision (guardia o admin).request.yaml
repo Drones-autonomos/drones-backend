@@ -1,0 +1,8 @@
+$kind: http-request
+url: http://localhost:8000/api/v1/missions/ /cancel
+method: POST
+auth:
+  type: bearer
+  credentials:
+    token: "{{json_web_token_0ekz}}"
+order: 1041681596573479

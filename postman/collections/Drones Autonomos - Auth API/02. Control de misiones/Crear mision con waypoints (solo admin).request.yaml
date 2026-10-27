@@ -1,0 +1,67 @@
+$kind: http-request
+url: http://localhost:8000/api/v1/missions/
+method: POST
+headers:
+  Authorization: Bearer
+body:
+  type: json
+  content: "{\r
+
+    \  \"nombre\": \"Patrullaje Nocturno Aulas\",\r
+
+    \  \"descripcion\": \"Recorrido perimetral en edificios y estacionamiento\",\r
+
+    \  \"horario_inicio_programado\": \"2026-10-15T22:00:00\",\r
+
+    \  \"waypoints\": [\r
+
+    \    {\r
+
+    \      \"orden_waypoint\": 1,\r
+
+    \      \"latitud\": 20.5888,\r
+
+    \      \"longitud\": -100.3899,\r
+
+    \      \"altitud_metros\": 15.0\r
+
+    \    },\r
+
+    \    {\r
+
+    \      \"orden_waypoint\": 2,\r
+
+    \      \"latitud\": 20.5895,\r
+
+    \      \"longitud\": -100.3905,\r
+
+    \      \"altitud_metros\": 18.0\r
+
+    \    }\r
+
+    \  ]\r
+
+    }"
+auth:
+  type: inherit
+  credentials:
+    id: collection-DdA1c36EDeC5aD90B0CBd2fb-bearer
+scripts:
+  - type: afterResponse
+    code: "pm.test(\"Status 201 - Misión creada\", function () {\r
+
+      \    pm.response.to.have.status(201);\r
+
+      });\r
+
+      \r
+
+      const data = pm.response.json();\r
+
+      if (data.id) {\r
+
+      \    pm.environment.set(\"mission_id\", res.id);\r
+
+      }"
+    language: text/javascript
+order: 1790872689733

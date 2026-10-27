@@ -1,0 +1,39 @@
+$kind: http-request
+url: http://127.0.1:8000/detections/ingest
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"vuelo_id\": null,\r
+
+    \  \"tipo\": \"PERSONA\",\r
+
+    \  \"nivel_confianza\": 0.91,\r
+
+    \  \"frame_url\": \"/storage/frames/frame_intruder_01.jpg\",\r
+
+    \  \"latitud\": 20.5888,\r
+
+    \  \"longitud\": -100.3899,\r
+
+    \  \"timestamp\": \"2026-10-27T23:15:00\"\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: "pm.test(\"Status 201 - Detección procesada\", function () {\r
+
+      \    pm.response.to.have.status(201);\r
+
+      });\r
+
+      const data = pm.response.json();\r
+
+      if (data.evento_id) {\r
+
+      \    pm.environment.set(\"event_id\", data.evento_id);\r
+
+      }"
+    language: text/javascript
+order: 1000

@@ -1,0 +1,17 @@
+$kind: collection
+description: API REST desarrollada en FastAPI para la gestión, telemetría y control de misiones autónomas de vigilancia con drones, detección de intrusiones/humo mediante IA y control de acceso basado en roles (RBAC).
+variables:
+  - key: json_web_token_0n8g
+    secret: true
+    disabled: false
+  - key: json_web_token_0ekz
+    secret: true
+    disabled: false
+  - key: json_web_token_0xho
+    secret: true
+    disabled: false
+auth:
+  type: bearer
+  credentials:
+    token: |
+      {{json_web_token_0xho}}

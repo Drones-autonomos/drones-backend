@@ -1,0 +1,12 @@
+name: Drones - Local
+values:
+  - key: base_url
+    value: ''
+  - key: admin_token
+    value: ''
+  - key: guardia_token
+    value: ''
+  - key: mission_id
+    value: ''
+  - key: event_id
+    value: ''

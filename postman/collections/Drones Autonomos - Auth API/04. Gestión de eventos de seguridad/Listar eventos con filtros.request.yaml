@@ -1,0 +1,13 @@
+$kind: http-request
+url: http://localhost/api/v1/events/?tipo=PERSONA_NOCTURNA&estado=PENDIENTE&skip=0&limit=50
+method: GET
+queryParams:
+  tipo: PERSONA_NOCTURNA
+  estado: PENDIENTE
+  skip: "0"
+  limit: "50"
+auth:
+  type: bearer
+  credentials:
+    token: "{{json_web_token_0ekz}}"
+order: 1000
