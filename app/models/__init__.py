@@ -6,3 +6,4 @@ from app.models.detection import Deteccion
 
 
 __all__ = ["Base", "Rol", "Usuario", "Permiso","Mision", "Ruta", "Evento", "Deteccion",]
+__all__ = ["Base", "Permiso", "Rol", "Usuario", "Mision", "Ruta"]
