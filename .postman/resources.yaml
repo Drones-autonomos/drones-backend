@@ -2,6 +2,8 @@
 workspace:
   id: a0b7f63b-d455-481e-80a9-32deeea15adc
 
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
 cloudResources:
   collections:
     ../postman/collections/Drones Autonomos - Auth API: 19d643e6-dee0-4bf3-98e9-37c53b0e1a14
