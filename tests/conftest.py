@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 """
 conftest.py — Fixtures compartidos para toda la suite de tests.
 
@@ -7,6 +8,14 @@ Estrategia:
 - El TestClient de FastAPI sobreescribe la dependencia get_db para usar
   la sesión de test en lugar de la sesión de producción.
 """
+
+import os
+import secrets
+
+# Configuración aislada: las pruebas no dependen de los secretos del .env local.
+os.environ["SECRET_KEY"] = secrets.token_hex(32)
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["MISSION_SCHEDULER_ENABLED"] = "false"
 
 import pytest
 from fastapi.testclient import TestClient
@@ -94,6 +103,7 @@ from app.core.security import get_password_hash
 from app.db.base_class import Base
 from app.main import app
 from app.models.user import Rol, Usuario
+from app.services.mission_service import MissionService, get_mission_service
 
 # ---------------------------------------------------------------------------
 # Motor SQLite en memoria — aislado por sesión de test
@@ -146,9 +156,12 @@ def client(db):
         finally:
             pass  # El fixture `db` se encarga del cierre
 
+    service = MissionService(TestingSessionLocal)
+    app.dependency_overrides[get_mission_service] = lambda: service
     app.dependency_overrides[deps.get_db] = override_get_db
     with TestClient(app) as c:
         yield c
+    service.shutdown()
     app.dependency_overrides.clear()
 
 

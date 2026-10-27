@@ -34,10 +34,11 @@ Base URL: `http://localhost:8000/api/v1`
 
 ### POST /auth/register
 
-Registra un nuevo usuario en el sistema.
+Registra un nuevo usuario en el sistema. Para crear el primer administrador, ejecuta `python -m app.bootstrap_admin` tras aplicar las migraciones.
 
-**Requiere autenticación:** No  
-**Roles permitidos:** Público
+**Requiere autenticación:** Sí
+
+**Roles permitidos:** ADMIN
 
 **Request Body**
 
@@ -78,6 +79,8 @@ Registra un nuevo usuario en el sistema.
 
 | Código | Causa |
 |---|---|
+| `401` | Falta autenticación válida |
+| `403` | El usuario no es administrador |
 | `400` | El correo electrónico ya está registrado |
 | `404` | El `rol_id` especificado no existe |
 | `422` | Error de validación (nombre muy corto, password corta, email inválido) |
@@ -357,7 +360,7 @@ Cancela una misión (cambia su estado a `CANCELADA`).
 
 Establece conexión con el dron via MAVLink.
 
-**Requiere autenticación:** No (por ahora)
+**Requiere autenticación:** Sí; rol ADMIN.
 
 **Request Body**
 
@@ -377,7 +380,9 @@ Establece conexión con el dron via MAVLink.
 
 ### POST /drone/takeoff
 
-Arma los motores y ejecuta el despegue a la altitud especificada.
+Arma los motores y ejecuta el despegue a la altitud especificada (2–200 metros).
+
+**Requiere autenticación:** Sí; rol ADMIN.
 
 **Request Body**
 
@@ -401,10 +406,12 @@ Arma los motores y ejecuta el despegue a la altitud especificada.
 
 Envía el comando **Return to Launch** (volver a la base y aterrizar).
 
+**Requiere autenticación:** Sí; rol ADMIN o GUARDIA.
+
 **Response 200 — OK**
 
 ```json
-{ "message": "Regresando a base" }
+{ "message": "RTL solicitado; consulta la misión para confirmar el aterrizaje" }
 ```
 
 ---
@@ -413,7 +420,7 @@ Envía el comando **Return to Launch** (volver a la base y aterrizar).
 
 | Endpoint | ADMIN | GUARDIA | Público |
 |---|:---:|:---:|:---:|
-| `POST /auth/register` | ✅ | ✅ | ✅ |
+| `POST /auth/register` | ✅ | ❌ | ❌ |
 | `POST /auth/login` | ✅ | ✅ | ✅ |
 | `GET /auth/me` | ✅ | ✅ | ❌ |
 | `POST /missions/` | ✅ | ❌ | ❌ |
@@ -421,7 +428,11 @@ Envía el comando **Return to Launch** (volver a la base y aterrizar).
 | `GET /missions/{id}` | ✅ | ✅ | ❌ |
 | `PUT /missions/{id}` | ✅ | ❌ | ❌ |
 | `POST /missions/{id}/cancel` | ✅ | ✅ | ❌ |
-| `POST /drone/*` | ✅ | ✅ | ❌ |
+| `POST /missions/{id}/start` | ✅ | ❌ | ❌ |
+| `POST /missions/{id}/confirm-landed` | ✅ | ❌ | ❌ |
+| `POST /drone/connect` | ✅ | ❌ | ❌ |
+| `POST /drone/takeoff` | ✅ | ❌ | ❌ |
+| `POST /drone/rtl` | ✅ | ✅ | ❌ |
 
 ---
 
@@ -459,3 +470,16 @@ Los errores de validación (422) incluyen detalles por campo:
 | `404` | Recurso no encontrado |
 | `422` | Error de validación del body/query |
 | `500` | Error interno del servidor |
+
+
+## Ejecución de misiones (fase 2)
+
+| Endpoint | Rol | Respuesta |
+|---|---|---|
+| `POST /missions/{id}/start` | ADMIN | 202: ejecución en segundo plano |
+| `POST /missions/{id}/confirm-landed` | ADMIN | 200: libera una reserva huérfana tras comprobar aterrizaje |
+| `POST /missions/{id}/cancel` | ADMIN o GUARDIA | 200: CANCELADA si no inició; CANCELANDO si está ejecutándose |
+
+`GET /missions/{id}` incluye `waypoints_completados`, `iniciada_at`, `finalizada_at` y `error_ejecucion`. Los estados adicionales son `CANCELANDO`, `FALLIDA` y `RECUPERACION`. Inicio devuelve 404 si no existe la misión, 409 si no está programada o el vehículo está reservado, 422 para una ruta histórica inválida y 503 si el dron no está listo. Recuperación devuelve 409 si aún existe un ejecutor o no hay reserva y 503 si no se confirma que el vehículo está en tierra.
+
+Los waypoints deben tener orden único y consecutivo desde 1. Las fechas con zona se convierten a UTC; sin zona se interpretan como UTC. El planificador está desactivado por defecto. Ver [ejecución de misiones](MISSION_EXECUTION.md) para configuración, estados y recuperación.

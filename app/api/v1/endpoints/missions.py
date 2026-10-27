@@ -9,6 +9,7 @@ from app.schemas.mission import (
     MisionResponse,
     MisionUpdate,
 )
+from app.services.mission_service import MissionService, get_mission_service
 
 router = APIRouter()
 
@@ -63,7 +64,7 @@ def create_mission(
 def list_missions(
     estado: str | None = Query(
         None,
-        description="Filtrar por estado: PROGRAMADA, EN_CURSO, FINALIZADA, CANCELADA",
+        description="Estado: PROGRAMADA, EN_CURSO, CANCELANDO, FINALIZADA, CANCELADA, FALLIDA o RECUPERACION",
     ),
     skip: int = Query(0, ge=0, description="Registros a saltar"),
     limit: int = Query(50, ge=1, le=100, description="Límite por página"),
@@ -130,24 +131,38 @@ def update_mission(
     response_model=MisionResponse,
     dependencies=[Depends(deps.require_guard_or_admin)],
     summary="Cancelar misión",
-    description=("Cambia el estado de la misión a CANCELADA. Accesible tanto por guardia como por admin."),
+    description=("Cancela misiones programadas o solicita interrupción con RTL. Requiere ADMIN o GUARDIA."),
 )
 def cancel_mission(
     id: int,
+    service: MissionService = Depends(get_mission_service),
     db: Session = Depends(deps.get_db),
     current_user: Usuario = Depends(deps.require_guard_or_admin),
 ):
-    mision = db.query(Mision).filter(Mision.id == id).first()
-    if not mision:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Misión no encontrada")
+    service.cancel(id)
+    db.expire_all()
+    return db.get(Mision, id)
 
-    if mision.estado in ["FINALIZADA", "CANCELADA"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"La misión ya no puede ser cancelada (estado actual: {mision.estado})",
-        )
 
-    mision.estado = "CANCELADA"
-    db.commit()
-    db.refresh(mision)
-    return mision
+@router.post("/{id}/start", response_model=MisionResponse, status_code=202, summary="Iniciar ejecución de la ruta")
+def start_mission(
+    id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: Usuario = Depends(deps.require_admin),
+    service: MissionService = Depends(get_mission_service),
+):
+    service.start(id)
+    db.expire_all()
+    return db.get(Mision, id)
+
+
+@router.post("/{id}/confirm-landed", response_model=MisionResponse, summary="Recuperar reserva tras interrupción")
+def confirm_landed(
+    id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: Usuario = Depends(deps.require_admin),
+    service: MissionService = Depends(get_mission_service),
+):
+    service.confirm_landed(id)
+    db.expire_all()
+    return db.get(Mision, id)
