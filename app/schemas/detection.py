@@ -17,6 +17,7 @@ class DeteccionBase(BaseModel):
 
 
 class DeteccionCreate(DeteccionBase):
+  """Payload de ingesta: el id y evento_id los genera el backend."""
   pass
 
 

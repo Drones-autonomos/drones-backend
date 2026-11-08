@@ -1,3 +1,4 @@
+from asyncio import Event
 from datetime import datetime
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -19,4 +20,4 @@ class Deteccion(Base):
     evento_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("eventos.id"), nullable=True)
     
     # Se referencia con string "Evento" sin necesidad de importar la clase
-    evento: Mapped["Evento"] = relationship("Evento", back_populates="detecciones")
+    evento: Mapped["Event"] = relationship("Evento", back_populates="detecciones")

@@ -21,7 +21,7 @@ router = APIRouter()
         " generar eventos."
     ),
 )
-def ingest_detection(
+async def ingest_detection(
     detection_in: DeteccionCreate,
     db: Session = Depends(deps.get_db),
 ):
@@ -39,7 +39,8 @@ def ingest_detection(
   db.flush()
 
   # 2. Pasar el registro al servicio de evaluación de eventos
-  evaluate_detection_for_event(db, db_detection)
+  await evaluate_detection_for_event(db, db_detection)
+
 
   # 3. Confirmar la transacción
   db.commit()

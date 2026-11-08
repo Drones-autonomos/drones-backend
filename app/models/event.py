@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy import DateTime, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base_class import Base
+from app.models.detection import Deteccion
 
 class Evento(Base):
     __tablename__ = "eventos"

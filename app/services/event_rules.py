@@ -1,60 +1,103 @@
 from datetime import datetime
 from sqlalchemy.orm import Session
 
+from app.models.alert import Alerta
 from app.models.detection import Deteccion
 from app.models.event import Evento
+from app.services.notfication_service import notification_manager
 
 UMBRAL_CONFIANZA = 0.70
 
 
-def evaluate_detection_for_event(
+async def evaluate_detection_for_event(
     db: Session, deteccion: Deteccion
 ) -> Evento | None:
-  """Evalúa si una detección califica como evento de seguridad relevante."""
-  if deteccion.nivel_confianza < UMBRAL_CONFIANZA:
-    return None
+    """
+    Evalúa la detección. Si cumple las condiciones de seguridad, genera el Evento,
+    crea la Alerta vinculada y emite la notificación en tiempo real vía WebSocket.
+    """
+    if deteccion.nivel_confianza < UMBRAL_CONFIANZA:
+        return None
 
-  tipo_normalizado = deteccion.tipo.upper()
-  fecha_eval = deteccion.timestamp or datetime.utcnow()
-  hora = fecha_eval.hour
+    tipo_normalizado = deteccion.tipo.upper()
+    fecha_eval = deteccion.timestamp or datetime.utcnow()
+    hora = fecha_eval.hour
 
-  nuevo_evento = None
+    nuevo_evento = None
+    titulo_alerta = ""
+    mensaje_alerta = ""
+    criticidad = "ALTA"
 
-  # 1. Regla de Humo: Siempre crítico si supera el umbral
-  if tipo_normalizado == "HUMO":
-    nuevo_evento = Evento(
-        tipo="HUMO_DETECTADO",
-        nivel_criticidad="CRITICA",
-        descripcion=(
-            f"Detección de humo con confianza del {deteccion.nivel_confianza * 100:.1f}% "
-            f"en coordenadas ({deteccion.latitud}, {deteccion.longitud})."
-        ),
-        estado="PENDIENTE",
-        created_at=fecha_eval,
-    )
+    # 1. Regla de Humo
+    if tipo_normalizado == "HUMO":
+        criticidad = "CRITICA"
+        titulo_alerta = "ALERTA CRÍTICA: Humo Detectado"
+        mensaje_alerta = (
+            f"Se detectó humo con {(deteccion.nivel_confianza * 100):.1f}% de confianza "
+            f"en coordenadas [{deteccion.latitud}, {deteccion.longitud}]."
+        )
+        nuevo_evento = Evento(
+            tipo="HUMO_DETECTADO",
+            nivel_criticidad=criticidad,
+            descripcion=mensaje_alerta,
+            estado="PENDIENTE",
+            created_at=fecha_eval,
+        )
 
-  # 2. Regla de Persona fuera de horario (21:00 a 06:00 hrs)
-  elif tipo_normalizado == "PERSONA":
-    es_fuera_de_horario = hora >= 21 or hora < 6
+    # 2. Regla de Persona fuera de horario (21:00 a 06:00 hrs)
+    elif tipo_normalizado == "PERSONA":
+        es_fuera_de_horario = hora >= 21 or hora < 6
+        if es_fuera_de_horario:
+            criticidad = "ALTA"
+            titulo_alerta = "ALERTA DE SEGURIDAD: Persona Fuera de Horario"
+            mensaje_alerta = (
+                f"Presencia de persona detectada a las {fecha_eval.strftime('%H:%M:%S')} hrs "
+                f"con confianza del {(deteccion.nivel_confianza * 100):.1f}%."
+            )
+            nuevo_evento = Evento(
+                tipo="PERSONA_NOCTURNA",
+                nivel_criticidad=criticidad,
+                descripcion=mensaje_alerta,
+                estado="PENDIENTE",
+                created_at=fecha_eval,
+            )
 
-    if es_fuera_de_horario:
-      nuevo_evento = Evento(
-          tipo="PERSONA_NOCTURNA",
-          nivel_criticidad="ALTA",
-          descripcion=(
-              f"Persona detectada fuera de horario regular ({fecha_eval.strftime('%H:%M:%S')}) "
-              f"con confianza del {deteccion.nivel_confianza * 100:.1f}%."
-          ),
-          estado="PENDIENTE",
-          created_at=fecha_eval,
-      )
+    # Si califica como evento, persistimos evento, asociamos detección y disparamos alerta
+    if nuevo_evento:
+        db.add(nuevo_evento)
+        db.flush()
 
-  if nuevo_evento:
-    db.add(nuevo_evento)
-    db.flush()  # Genera el ID del nuevo evento sin cerrar la transacción
+        deteccion.evento_id = nuevo_evento.id
+        db.add(deteccion)
 
-    # Enlazar la detección con el evento generado
-    deteccion.evento_id = nuevo_evento.id
-    db.add(deteccion)
+        # Crear y persistir la Alerta
+        nueva_alerta = Alerta(
+            evento_id=nuevo_evento.id,
+            titulo=titulo_alerta,
+            mensaje=mensaje_alerta,
+            nivel_criticidad=criticidad,
+            leida=False,
+            destinatario_rol="GUARDIA",
+            timestamp_envio=fecha_eval,
+        )
+        db.add(nueva_alerta)
+        db.flush()
 
-  return nuevo_evento
+        # Emitir broadcast en tiempo real vía WebSocket
+        payload_broadcast = {
+            "type": "NEW_ALERT",
+            "alerta_id": nueva_alerta.id,
+            "evento_id": nuevo_evento.id,
+            "titulo": nueva_alerta.titulo,
+            "mensaje": nueva_alerta.mensaje,
+            "nivel_criticidad": nueva_alerta.nivel_criticidad,
+            "timestamp": nueva_alerta.timestamp_envio.isoformat(),
+            "evidencia": {
+                "frame_url": deteccion.frame_url,
+                "latitud": float(deteccion.latitud),
+                "longitud": float(deteccion.longitud),
+            },
+        }
+        await notification_manager.broadcast_alert(payload_broadcast)
+
+    return nuevo_evento
