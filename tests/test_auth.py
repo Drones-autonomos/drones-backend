@@ -16,7 +16,7 @@ Cubre:
 class TestRegister:
     ENDPOINT = "/api/v1/auth/register"
 
-    def test_register_admin_success(self, client):
+    def test_register_admin_success(self, client, admin_token):
         """Registrar un nuevo ADMIN devuelve 201 con datos del usuario."""
         payload = {
             "nombre": "Juan Admin",
@@ -24,7 +24,7 @@ class TestRegister:
             "password": "Password123!",
             "rol_id": 1,  # ADMIN (seed en conftest)
         }
-        r = client.post(self.ENDPOINT, json=payload)
+        r = client.post(self.ENDPOINT, json=payload, headers={"Authorization": f"Bearer {admin_token}"})
         assert r.status_code == 201
         data = r.json()
         assert data["email"] == "juan@test.com"
@@ -33,7 +33,7 @@ class TestRegister:
         assert "password" not in data
         assert "password_hash" not in data
 
-    def test_register_guardia_success(self, client):
+    def test_register_guardia_success(self, client, admin_token):
         """Registrar un GUARDIA devuelve 201."""
         payload = {
             "nombre": "María Guardia",
@@ -41,11 +41,11 @@ class TestRegister:
             "password": "Password123!",
             "rol_id": 2,  # GUARDIA
         }
-        r = client.post(self.ENDPOINT, json=payload)
+        r = client.post(self.ENDPOINT, json=payload, headers={"Authorization": f"Bearer {admin_token}"})
         assert r.status_code == 201
         assert r.json()["rol"]["nombre"] == "GUARDIA"
 
-    def test_register_duplicate_email(self, client, admin_user):
+    def test_register_duplicate_email(self, client, admin_user, admin_token):
         """Registrar con email ya existente devuelve 400."""
         payload = {
             "nombre": "Otro Admin",
@@ -53,11 +53,11 @@ class TestRegister:
             "password": "Password123!",
             "rol_id": 1,
         }
-        r = client.post(self.ENDPOINT, json=payload)
+        r = client.post(self.ENDPOINT, json=payload, headers={"Authorization": f"Bearer {admin_token}"})
         assert r.status_code == 400
         assert "correo" in r.json()["detail"].lower()
 
-    def test_register_invalid_rol(self, client):
+    def test_register_invalid_rol(self, client, admin_token):
         """Registrar con rol_id inexistente devuelve 404."""
         payload = {
             "nombre": "Sin Rol",
@@ -65,10 +65,10 @@ class TestRegister:
             "password": "Password123!",
             "rol_id": 999,
         }
-        r = client.post(self.ENDPOINT, json=payload)
+        r = client.post(self.ENDPOINT, json=payload, headers={"Authorization": f"Bearer {admin_token}"})
         assert r.status_code == 404
 
-    def test_register_password_too_short(self, client):
+    def test_register_password_too_short(self, client, admin_token):
         """Contraseña menor a 6 caracteres devuelve 422."""
         payload = {
             "nombre": "Test",
@@ -76,10 +76,10 @@ class TestRegister:
             "password": "abc",
             "rol_id": 1,
         }
-        r = client.post(self.ENDPOINT, json=payload)
+        r = client.post(self.ENDPOINT, json=payload, headers={"Authorization": f"Bearer {admin_token}"})
         assert r.status_code == 422
 
-    def test_register_invalid_email(self, client):
+    def test_register_invalid_email(self, client, admin_token):
         """Email inválido devuelve 422."""
         payload = {
             "nombre": "Test",
@@ -87,7 +87,7 @@ class TestRegister:
             "password": "Password123!",
             "rol_id": 1,
         }
-        r = client.post(self.ENDPOINT, json=payload)
+        r = client.post(self.ENDPOINT, json=payload, headers={"Authorization": f"Bearer {admin_token}"})
         assert r.status_code == 422
 
 

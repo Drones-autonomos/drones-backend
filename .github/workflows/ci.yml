@@ -26,9 +26,6 @@ jobs:
           pip install ruff pytest fastapi pydantic
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Copiar variables de entorno de prueba
-        run: cp .env.example .env
-
       - name: Validar estilo con Ruff (Linter)
         run: ruff check .
 

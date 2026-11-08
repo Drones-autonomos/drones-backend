@@ -1,10 +1,28 @@
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.api.v1.api import api_router
 from app.core.config import settings
+from app.services.mission_service import MissionError, mission_service
 
-app = FastAPI(title=settings.PROJECT_NAME, openapi_url=f"{settings.API_V1_STR}/openapi.json", docs_url="/docs")
+
+@asynccontextmanager
+async def lifespan(app):
+    if settings.MISSION_SCHEDULER_ENABLED:
+        mission_service.start_scheduler()
+    try:
+        yield
+    finally:
+        await asyncio.to_thread(mission_service.shutdown)
+
+
+app = FastAPI(
+    lifespan=lifespan, title=settings.PROJECT_NAME, openapi_url=f"{settings.API_V1_STR}/openapi.json", docs_url="/docs"
+)
 
 # Configuración de orígenes permitidos (frontend)
 origins = [
@@ -27,3 +45,8 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 @app.get("/")
 def root():
     return {"status": "ok", "message": "API Drones Autónomos activa"}
+
+
+@app.exception_handler(MissionError)
+async def mission_error_handler(request, exc):
+    return JSONResponse(status_code=exc.status_code, content={"detail": str(exc)})

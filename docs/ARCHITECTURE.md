@@ -205,3 +205,10 @@ Schema Pydantic (Response)
      ▼
 Response HTTP
 ```
+
+
+## Ejecutor de misiones
+
+`MissionService` ejecuta las rutas persistidas en un hilo por misión, con un único vehículo reservado. La reserva tiene una restricción UNIQUE en BD y permanece tras un reinicio o aterrizaje no confirmado. El progreso se persiste usando sesiones independientes de las peticiones HTTP. Un planificador opcional iniciado en el lifespan de FastAPI selecciona misiones vencidas cada cinco segundos. Se requiere una única instancia/worker de control; no hay coordinación distribuida de los comandos manuales.
+
+Estados de ejecución y operación en [MISSION_EXECUTION.md](MISSION_EXECUTION.md). La cancelación activa pasa por CANCELANDO y solo termina en CANCELADA tras aterrizaje confirmado; errores sin aterrizaje confirmado pasan a RECUPERACION.

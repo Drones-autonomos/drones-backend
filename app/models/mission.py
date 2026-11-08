@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 from sqlalchemy import (
+    CheckConstraint,
     DateTime,
     Float,
     ForeignKey,
@@ -16,6 +17,7 @@ from app.db.base_class import Base
 
 class Mision(Base):
     __tablename__ = "misiones"
+    __table_args__ = (CheckConstraint("vehiculo_activo IS NULL OR vehiculo_activo = 1", name="ck_mision_vehiculo"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     creado_por: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), nullable=False)
@@ -23,9 +25,15 @@ class Mision(Base):
     descripcion: Mapped[str] = mapped_column(Text, nullable=True)
     estado: Mapped[str] = mapped_column(
         String(30), default="PROGRAMADA", nullable=False
-    )  # PROGRAMADA, EN_CURSO, FINALIZADA, CANCELADA
+    )  # PROGRAMADA, EN_CURSO, CANCELANDO, FINALIZADA, CANCELADA, FALLIDA, RECUPERACION
     horario_inicio_programado: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    iniciada_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finalizada_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    waypoints_completados: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    error_ejecucion: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Una única reserva persistente para el vehículo, incluso tras reiniciar la API.
+    vehiculo_activo: Mapped[int | None] = mapped_column(Integer, unique=True, nullable=True)
 
     # Relaciones
     waypoints: Mapped[list["Ruta"]] = relationship(

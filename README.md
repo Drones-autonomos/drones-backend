@@ -54,11 +54,12 @@ python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
 # 3. Configurar variables de entorno
-cp .env.example .env   # edita DATABASE_URL y SECRET_KEY
+cp .env.example .env   # edita DATABASE_URL y SECRET_KEY (openssl rand -hex 32)
 
 # 4. Levantar la DB
 docker-compose up -d
 alembic upgrade head
+python -m app.bootstrap_admin  # crea el primer ADMIN de forma local
 
 # 5. Correr el servidor
 uvicorn app.main:app --reload
@@ -66,7 +67,7 @@ uvicorn app.main:app --reload
 
 # 6. Ejecutar los tests (no requiere PostgreSQL)
 pytest
-# → 48 passed in ~23s
+# La suite incluye pruebas de API, permisos, configuración y bootstrap.
 ```
 
 > Para instrucciones detalladas ver la [Guía de Desarrollo](docs/DEVELOPMENT.md).
@@ -189,14 +190,19 @@ pytest --cov=app --cov-report=term-missing
 | Archivo | Tests | Qué cubre |
 |---|---|---|
 | `tests/test_auth.py` | 15 | `POST /register`, `POST /login`, `GET /me` — éxito, errores de validación, RBAC |
-| `tests/test_missions.py` | 20 | CRUD completo de misiones — creación, listado, filtros, edición, cancelación, permisos |
+| `tests/test_missions.py` | 24 | CRUD completo de misiones — creación, listado, filtros, edición, cancelación, permisos |
 | `tests/test_security.py` | 9 | Hashing bcrypt (salt único, verify) y tokens JWT (subject, expiración, firma inválida) |
-| **Total** | **48** | |
+| `tests/test_access.py` | 19 | Permisos de vuelo y registro, validación de altura y bootstrap |
+| `tests/test_config.py` | 3 | Clave JWT obligatoria y longitud mínima |
+| `tests/test_drone_navigation.py` | 9 | Navegación, tiempos máximos y telemetría |
+| `tests/test_mission_execution.py` | 31 | Ejecución, cancelación, horarios, recuperación y permisos |
+| `tests/test_migration_execution.py` | 1 | Migración conservando datos existentes |
+| **Total** | **111** | |
 
 **Resultado esperado:**
 
 ```
-==================== 48 passed in ~23s ====================
+==================== 111 passed ====================
 ```
 
 #### Estrategia de testing
@@ -369,3 +375,11 @@ Aprovisionar la infraestructura fundacional del proyecto, configurando los entor
 ---
 
 > 📚 Toda la documentación técnica está en la carpeta [`docs/`](docs/).
+
+## Estabilización de la base
+
+El registro de usuarios requiere ADMIN. Conectar y despegar requiere ADMIN; RTL permite ADMIN y GUARDIA. La clave JWT es obligatoria y el contenedor usa las dependencias de `requirements.txt`. Consulta el [plan por fases y estado de validación](docs/WORK_PLAN.md).
+
+## Misiones dinámicas
+
+Aplicar `alembic upgrade head` antes de iniciar esta versión. Las rutas guardadas se ejecutan con `POST /api/v1/missions/{id}/start` (ADMIN); el progreso se consulta en el detalle de la misión. Usar una única instancia de control con un solo worker. La ejecución por horario es opcional mediante `MISSION_SCHEDULER_ENABLED=true` y está desactivada por defecto. Ver [ejecución, cancelación y recuperación](docs/MISSION_EXECUTION.md).
