@@ -1,0 +1,33 @@
+$kind: http-request
+description: Retorna el listado de eventos con filtros opcionales de tipo, estado, rango de fechas y paginación. Accesible por Guardia y Admin.
+url: "{{baseUrl}}/api/v1/events/?tipo=string&estado=string&fecha_inicio=2009-01-08T20:24:51.664Z&fecha_fin=2009-01-08T20:24:51.664Z&skip=0&limit=50"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  - key: tipo
+    value: string
+    description: Filtrar por tipo (ej. PERSONA_NOCTURNA, HUMO_DETECTADO)
+  - key: estado
+    value: string
+    description: Filtrar por estado (ej. PENDIENTE, EN_REVISION, RESUELTO)
+  - key: fecha_inicio
+    value: 2009-01-08T20:24:51.664Z
+    description: Fecha/hora inicial de búsqueda (ISO 8601)
+  - key: fecha_fin
+    value: 2009-01-08T20:24:51.664Z
+    description: Fecha/hora final de búsqueda (ISO 8601)
+  - key: skip
+    value: "0"
+    description: Número de registros a omitir
+  - key: limit
+    value: "50"
+    description: Cantidad máxima de registros a retornar
+auth:
+  type: oauth2
+  credentials:
+    accessTokenUrl: /api/v1/auth/login
+    grant_type: password_credentials
+settings: {}
+examples: .resources/Listar eventos de seguridad.resources/examples
+order: 1000

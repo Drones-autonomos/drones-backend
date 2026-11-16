@@ -1,4 +1,3 @@
-# Use this workspace to collaborate
 workspace:
   id: a0b7f63b-d455-481e-80a9-32deeea15adc
 
@@ -6,10 +5,11 @@ workspace:
 
 cloudResources:
   collections:
-    ../postman/collections/Drones Autonomos - Auth API: 19d643e6-dee0-4bf3-98e9-37c53b0e1a14
+    ../postman/collections/Drones-Autonomos API: de1726f7-4c6c-4cf0-981b-370d74d6bf55
 
-# All resources in the `postman/` folder are automatically registered in Local View.
-# Point to additional files outside the `postman/` folder to register them individually. Example:
-#localResources:
-#  collections:
-#    - ../tests/E2E Test Collection/
+localResources:
+  specs:
+    - ../postman/specs/export/export.yaml
+resourceNameMappings:
+  specs:
+    - ../postman/specs/export/export.yaml: export

@@ -1,0 +1,27 @@
+$kind: http-request
+description: "Edita datos informativos mientras la misión se encuentre en estado PROGRAMADA[cite: 2]."
+url: "{{baseUrl}}/api/v1/missions/:id"
+method: PUT
+headers:
+  Content-Type: application/json
+  Accept: application/json
+pathVariables:
+  - key: id
+    value: "{{mission_id}}"
+    description: ""
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "string",
+      "descripcion": "string",
+      "horario_inicio_programado": "1987-12-27T22:13:07.647Z"
+    }
+auth:
+  type: oauth2
+  credentials:
+    accessTokenUrl: /api/v1/auth/login
+    grant_type: password_credentials
+settings: {}
+examples: .resources/Editar misión.resources/examples
+order: 4000

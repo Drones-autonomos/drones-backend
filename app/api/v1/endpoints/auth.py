@@ -80,7 +80,8 @@ def login(credentials: UserLogin, db: Session = Depends(deps.get_db)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuario inactivo en la plataforma.")
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    token = create_access_token(subject=user.id, expires_delta=access_token_expires)
+    rol_nombre = user.rol.nombre if user.rol else "GUARDIA"
+    token = create_access_token(subject=user.id, expires_delta=access_token_expires, rol=rol_nombre)
     return {"access_token": token, "token_type": "bearer"}
 
 

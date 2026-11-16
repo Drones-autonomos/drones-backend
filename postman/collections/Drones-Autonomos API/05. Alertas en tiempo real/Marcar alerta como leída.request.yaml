@@ -1,0 +1,18 @@
+$kind: http-request
+description: Actualiza el estado de lectura de la alerta a True.
+url: "{{baseUrl}}/api/v1/alerts/:id/read"
+method: PATCH
+headers:
+  Accept: application/json
+pathVariables:
+  - key: id
+    value: "{{alert_id}}"
+    description: ""
+auth:
+  type: oauth2
+  credentials:
+    accessTokenUrl: /api/v1/auth/login
+    grant_type: password_credentials
+settings: {}
+examples: .resources/Marcar alerta como leída.resources/examples
+order: 3000

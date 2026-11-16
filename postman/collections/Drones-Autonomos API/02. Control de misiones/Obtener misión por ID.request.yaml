@@ -1,0 +1,18 @@
+$kind: http-request
+description: "Retorna el detalle completo y sus waypoints en orden[cite: 2]."
+url: "{{baseUrl}}/api/v1/missions/:id"
+method: GET
+headers:
+  Accept: application/json
+pathVariables:
+  - key: id
+    value: "{{mission_id}}"
+    description: ""
+auth:
+  type: oauth2
+  credentials:
+    accessTokenUrl: /api/v1/auth/login
+    grant_type: password_credentials
+settings: {}
+examples: .resources/Obtener misión por ID.resources/examples
+order: 3000

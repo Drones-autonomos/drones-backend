@@ -1,0 +1,39 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/alerts/:id"
+  method: GET
+  headers:
+    - key: Accept
+      value: application/json
+    - key: Authorization
+      value: <token>
+      description: "Added as a part of security scheme: oauth2"
+  pathVariables:
+    id: "2459"
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "titulo": "string",
+        "mensaje": "string",
+        "nivel_criticidad": "string",
+        "id": 7162,
+        "evento_id": 5475,
+        "timestamp_envio": "1998-03-12T00:59:23.552Z",
+        "evento": {
+          "tipo": "string",
+          "nivel_criticidad": "string",
+          "id": 397,
+          "created_at": "1975-05-27T03:11:21.613Z",
+          "descripcion": "string",
+          "estado": "PENDIENTE"
+        },
+        "leida": false,
+        "destinatario_rol": "GUARDIA"
+      }
+order: 1000

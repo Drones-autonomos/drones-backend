@@ -1,0 +1,44 @@
+$kind: http-request
+description: Crea una misión y registra sus waypoints de ruta en una sola transacción. Requiere rol ADMIN.
+url: "{{baseUrl}}/api/v1/missions/"
+method: POST
+headers:
+  Content-Type: application/json
+  Accept: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "string",
+      "horario_inicio_programado": "1966-03-02T20:13:30.208Z",
+      "waypoints": [
+        {
+          "orden_waypoint": 7181,
+          "latitud": 6946.585875640409,
+          "longitud": 7441.605569153717,
+          "altitud_metros": 4687.013454717328
+        },
+        {
+          "orden_waypoint": 4049,
+          "latitud": 4314.418989371135,
+          "longitud": 8467.829700965205,
+          "altitud_metros": 1656.3095653598737
+        }
+      ],
+      "descripcion": "string",
+      "peso_dron_kg": 2.5
+    }
+auth:
+  type: oauth2
+  credentials:
+    accessTokenUrl: /api/v1/auth/login
+    grant_type: password_credentials
+scripts:
+  - type: afterResponse
+    code: "pm.test(\"Misión creada\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));\r
+
+      pm.collectionVariables.set(\"mission_id\", pm.response.json().id);"
+    language: text/javascript
+settings: {}
+examples: .resources/Crear misión con waypoints.resources/examples
+order: 1000

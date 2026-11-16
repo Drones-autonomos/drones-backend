@@ -1,0 +1,24 @@
+$kind: http-request
+description: "Retorna el listado de misiones con filtros de paginación y estado[cite: 2]."
+url: "{{baseUrl}}/api/v1/missions/?estado=string&skip=0&limit=50"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  - key: estado
+    value: string
+    description: "Estado: PROGRAMADA, EN_CURSO, CANCELANDO, FINALIZADA, CANCELADA, FALLIDA o RECUPERACION"
+  - key: skip
+    value: "0"
+    description: Registros a saltar
+  - key: limit
+    value: "50"
+    description: Límite por página
+auth:
+  type: oauth2
+  credentials:
+    accessTokenUrl: /api/v1/auth/login
+    grant_type: password_credentials
+settings: {}
+examples: .resources/Listar misiones.resources/examples
+order: 2000

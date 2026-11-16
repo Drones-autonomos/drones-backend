@@ -1,0 +1,56 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/events/?tipo=string&estado=string&fecha_inicio=2009-01-08T20:24:51.664Z&fecha_fin=2009-01-08T20:24:51.664Z&skip=0&limit=50"
+  method: GET
+  headers:
+    - key: Accept
+      value: application/json
+    - key: Authorization
+      value: <token>
+      description: "Added as a part of security scheme: oauth2"
+  queryParams:
+    - key: tipo
+      value: string
+      description: Filtrar por tipo (ej. PERSONA_NOCTURNA, HUMO_DETECTADO)
+    - key: estado
+      value: string
+      description: Filtrar por estado (ej. PENDIENTE, EN_REVISION, RESUELTO)
+    - key: fecha_inicio
+      value: 2009-01-08T20:24:51.664Z
+      description: Fecha/hora inicial de búsqueda (ISO 8601)
+    - key: fecha_fin
+      value: 2009-01-08T20:24:51.664Z
+      description: Fecha/hora final de búsqueda (ISO 8601)
+    - key: skip
+      value: "0"
+      description: Número de registros a omitir
+    - key: limit
+      value: "50"
+      description: Cantidad máxima de registros a retornar
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      [
+        {
+          "tipo": "string",
+          "nivel_criticidad": "string",
+          "id": 6731,
+          "created_at": "1980-06-30T17:33:04.204Z",
+          "descripcion": "string",
+          "estado": "PENDIENTE"
+        },
+        {
+          "tipo": "string",
+          "nivel_criticidad": "string",
+          "id": 3377,
+          "created_at": "1996-11-19T19:59:07.836Z",
+          "descripcion": "string",
+          "estado": "PENDIENTE"
+        }
+      ]
+order: 1000

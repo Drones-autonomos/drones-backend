@@ -1,0 +1,273 @@
+openapi: 3.0.0
+info:
+  title: export
+  version: 1.0.0
+  description: 'API REST desarrollada en FastAPI para la gestión, telemetría y control de misiones autónomas de vigilancia con drones, detección de intrusiones/humo mediante IA y control de acceso basado en roles (RBAC).'
+servers:
+  - url: 'http://localhost:8000'
+  - url: ''
+  - url: 'http://127.0.1:8000'
+  - url: 'http://localhost'
+  - url: 'https://localhost:8000'
+  - url: 'http://127.0.0.1:8000'
+  - url: 'http://localhost:800'
+paths:
+  /api/v1/auth/login:
+    post:
+      summary: Login Admin
+      responses:
+        '200':
+          description: Login Admin
+          headers:
+            date:
+              schema:
+                type: string
+              example: 'Mon, 09 Nov 2026 00:47:45 GMT'
+            server:
+              schema:
+                type: string
+              example: uvicorn
+            content-length:
+              schema:
+                type: integer
+              example: 160
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+              example:
+                access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQyMTQwNjcsInN1YiI6IjMifQ.nDMy32Hm-8ziDEzTr7MKSu6Y7GWneBmAaiL2Q09SJX4
+                token_type: bearer
+      tags:
+        - 01. Autenticación y usuarios
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+            example:
+              email: admin@facultad.edu.mx
+              password: PsswrdSegura123!
+  /api/v1/auth/me:
+    get:
+      summary: Perfil de usuario actual
+      responses: {}
+      tags:
+        - 01. Autenticación y usuarios
+  /api/v1/missions/:
+    post:
+      summary: Crear mision con waypoints (solo admin)
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer
+      responses: {}
+      tags:
+        - 02. Control de misiones
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre:
+                  type: string
+                descripcion:
+                  type: string
+                horario_inicio_programado:
+                  type: string
+                waypoints:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      orden_waypoint:
+                        type: integer
+                      latitud:
+                        type: number
+                      longitud:
+                        type: number
+                      altitud_metros:
+                        type: integer
+            example:
+              nombre: Patrullaje Nocturno Aulas
+              descripcion: Recorrido perimetral en edificios y estacionamiento
+              horario_inicio_programado: '2026-10-15T22:00:00'
+              waypoints:
+                - orden_waypoint: 1
+                  latitud: 20.5888
+                  longitud: -100.3899
+                  altitud_metros: 15
+                - orden_waypoint: 2
+                  latitud: 20.5895
+                  longitud: -100.3905
+                  altitud_metros: 18
+    get:
+      summary: Listar misiones
+      parameters:
+        - name: estado
+          in: query
+          schema:
+            type: string
+          example: PROGRAMADA
+        - name: skip
+          in: query
+          schema:
+            type: integer
+          example: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          example: 50
+      responses: {}
+      tags:
+        - 02. Control de misiones
+      security:
+        - BearerAuth: []
+  /:
+    get:
+      summary: Detalle de mision
+      responses: {}
+      tags:
+        - 02. Control de misiones
+  /api/v1/missions/ /cancel:
+    post:
+      summary: Cancelar mision (guardia o admin)
+      responses: {}
+      tags:
+        - 02. Control de misiones
+      security:
+        - BearerAuth: []
+  /detections/ingest:
+    post:
+      summary: Ingesta de deteccion
+      responses: {}
+      tags:
+        - 03. Ingesta de IA y detecciones
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vuelo_id:
+                  nullable: true
+                tipo:
+                  type: string
+                nivel_confianza:
+                  type: number
+                frame_url:
+                  type: string
+                latitud:
+                  type: number
+                longitud:
+                  type: number
+                timestamp:
+                  type: string
+            example:
+              vuelo_id: null
+              tipo: PERSONA
+              nivel_confianza: 0.91
+              frame_url: /storage/frames/frame_intruder_01.jpg
+              latitud: 20.5888
+              longitud: -100.3899
+              timestamp: '2026-10-27T23:15:00'
+  /api/v1/events/:
+    get:
+      summary: Listar eventos con filtros
+      parameters:
+        - name: tipo
+          in: query
+          schema:
+            type: string
+          example: PERSONA_NOCTURNA
+        - name: estado
+          in: query
+          schema:
+            type: string
+          example: PENDIENTE
+        - name: skip
+          in: query
+          schema:
+            type: integer
+          example: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          example: 50
+      responses: {}
+      tags:
+        - 04. Gestión de eventos de seguridad
+      security:
+        - BearerAuth: []
+  /api/v1/events//status:
+    patch:
+      summary: Actualizar estado de evento
+      responses: {}
+      tags:
+        - 04. Gestión de eventos de seguridad
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                estado:
+                  type: string
+            example:
+              estado: EN_REVISION
+  /api/v1/auth/alerts/:
+    get:
+      summary: Detalle de alerta con evidencia
+      responses: {}
+      tags:
+        - 05. Alertas en tiempo real
+      security:
+        - BearerAuth: []
+  '/api/v1/alerts/{alerta_id}/read':
+    patch:
+      summary: Marcar alerta como leida
+      responses: {}
+      tags:
+        - 05. Alertas en tiempo real
+      security:
+        - BearerAuth: []
+    parameters:
+      - name: alerta_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: '{{alerta_id}}'
+  /api/v1/auth/recordings/upload:
+    post:
+      summary: New Request
+      responses: {}
+      tags:
+        - 07. Grabaciones seguras
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+security:
+  - BearerAuth: []

@@ -1,0 +1,22 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/video/stream-info"
+  method: GET
+  headers:
+    Accept: application/json
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "stream_url": "string",
+        "protocolo": "string",
+        "estado_camara": "string",
+        "resolucion": "string",
+        "fps": 262
+      }
+order: 1000

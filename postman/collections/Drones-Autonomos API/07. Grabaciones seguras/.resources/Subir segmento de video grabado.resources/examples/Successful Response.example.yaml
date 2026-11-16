@@ -1,0 +1,39 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/recordings/upload"
+  method: POST
+  headers:
+    Content-Type: multipart/form-data
+    Accept: application/json
+  body:
+    type: formdata
+    content:
+      - type: text
+        key: file
+        value: string
+      - type: text
+        key: duracion_segundos
+        value: "2379"
+      - type: text
+        key: vuelo_id
+        value: "6630"
+response:
+  statusCode: 201
+  statusText: Created
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "duracion_segundos": 8284,
+        "tamano_bytes": 4690,
+        "checksum_sha256": "string",
+        "id": 2927,
+        "ruta_archivo": "string",
+        "fecha_grabacion": "2008-05-08T23:06:42.212Z",
+        "fecha_purga": "2020-08-29T21:50:58.242Z",
+        "vuelo_id": 7828,
+        "dias_restantes_purga": null
+      }
+order: 1000

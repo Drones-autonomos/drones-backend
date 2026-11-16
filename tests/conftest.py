@@ -40,6 +40,8 @@ from app.main import app
 from app.models.alert import Alerta  # noqa: F401  (registra la tabla en Base.metadata)
 from app.models.user import Rol, Usuario
 from app.services.mission_service import MissionService, get_mission_service
+from unittest.mock import patch
+import pytest
 
 engine_test = create_engine(
     "sqlite:///:memory:",
@@ -50,7 +52,7 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 
 @pytest.fixture(scope="function")
-def db():
+def db () -> collections.abc.Generator:
     Base.metadata.create_all(bind=engine_test)
     session = TestingSessionLocal()
 
@@ -59,15 +61,16 @@ def db():
         Rol(nombre="GUARDIA", descripcion="Guardia de seguridad"),
     ])
     session.commit()
-
-    yield session
-
-    session.close()
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()
     Base.metadata.drop_all(bind=engine_test)
 
 
 @pytest.fixture(scope="function")
-def client(db):
+def client(db) -> collections.abc.Generator:
     def override_get_db():
         try:
             yield db
@@ -77,8 +80,8 @@ def client(db):
     service = MissionService(TestingSessionLocal)
     app.dependency_overrides[get_mission_service] = lambda: service
     app.dependency_overrides[deps.get_db] = override_get_db
-    with TestClient(app) as c:
-        yield c
+    with TestClient(app) as test_client:
+        yield test_client
     service.shutdown()
     app.dependency_overrides.clear()
 
@@ -133,3 +136,8 @@ def guardia_token(client, guardia_user) -> str:
     )
     assert response.status_code == 200, response.text
     return response.json()["access_token"]
+
+@pytest.fixture(scope="session", autouse=True)
+def disable_scheduler_in_tests():
+  with patch("app.main.start_purge_scheduler"):
+    yield

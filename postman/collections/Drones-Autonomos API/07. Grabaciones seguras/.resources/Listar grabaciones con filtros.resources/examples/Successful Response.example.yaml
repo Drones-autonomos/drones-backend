@@ -1,0 +1,49 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/recordings/?vuelo_id=5506&fecha_inicio=2009-01-08T20:24:51.664Z&fecha_fin=2009-01-08T20:24:51.664Z&skip=0&limit=50"
+  method: GET
+  headers:
+    - key: Accept
+      value: application/json
+    - key: Authorization
+      value: <token>
+      description: "Added as a part of security scheme: oauth2"
+  queryParams:
+    vuelo_id: "5506"
+    fecha_inicio: 2009-01-08T20:24:51.664Z
+    fecha_fin: 2009-01-08T20:24:51.664Z
+    skip: "0"
+    limit: "50"
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      [
+        {
+          "duracion_segundos": 5716,
+          "tamano_bytes": 6659,
+          "checksum_sha256": "string",
+          "id": 4568,
+          "ruta_archivo": "string",
+          "fecha_grabacion": "2019-08-15T21:24:02.975Z",
+          "fecha_purga": "2012-07-07T13:29:15.129Z",
+          "vuelo_id": 585,
+          "dias_restantes_purga": 286
+        },
+        {
+          "duracion_segundos": 1417,
+          "tamano_bytes": 2031,
+          "checksum_sha256": "string",
+          "id": 4785,
+          "ruta_archivo": "string",
+          "fecha_grabacion": "1950-03-20T15:01:52.278Z",
+          "fecha_purga": "1955-01-28T13:03:22.292Z",
+          "vuelo_id": 9067,
+          "dias_restantes_purga": 7139
+        }
+      ]
+order: 1000

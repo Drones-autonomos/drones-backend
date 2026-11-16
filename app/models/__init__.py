@@ -4,7 +4,7 @@ from app.models.mission import Mision, Ruta
 from app.models.event import Evento
 from app.models.detection import Deteccion
 from app.models.alert import Alerta
+from app.models.recording import Grabacion
 
-
-__all__ = ["Base", "Rol", "Usuario", "Permiso","Mision", "Ruta", "Evento", "Deteccion", "Alerta"]
+__all__ = ["Base", "Rol", "Usuario", "Permiso","Mision", "Ruta", "Evento", "Deteccion", "Alerta", "Grabacion"]
 
