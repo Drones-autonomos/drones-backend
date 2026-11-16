@@ -1,0 +1,68 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/missions/"
+  method: POST
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Accept
+      value: application/json
+    - key: Authorization
+      value: <token>
+      description: "Added as a part of security scheme: oauth2"
+  body:
+    type: json
+    content: |-
+      {
+        "nombre": "string",
+        "horario_inicio_programado": "1966-03-02T20:13:30.208Z",
+        "waypoints": [
+          {
+            "orden_waypoint": 7181,
+            "latitud": 6946.585875640409,
+            "longitud": 7441.605569153717,
+            "altitud_metros": 4687.013454717328
+          },
+          {
+            "orden_waypoint": 4049,
+            "latitud": 4314.418989371135,
+            "longitud": 8467.829700965205,
+            "altitud_metros": 1656.3095653598737
+          }
+        ],
+        "descripcion": "string",
+        "peso_dron_kg": 2.5
+      }
+response:
+  statusCode: 422
+  statusText: Unprocessable Entity (WebDAV) (RFC 4918)
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "detail": [
+          {
+            "loc": [
+              3174,
+              "string"
+            ],
+            "msg": "string",
+            "type": "string",
+            "input": "",
+            "ctx": {}
+          },
+          {
+            "loc": [
+              7682,
+              "string"
+            ],
+            "msg": "string",
+            "type": "string",
+            "input": "",
+            "ctx": {}
+          }
+        ]
+      }
+order: 2000

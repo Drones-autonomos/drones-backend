@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/missions/:id/start"
+method: POST
+headers:
+  Accept: application/json
+pathVariables:
+  - key: id
+    value: "{{mission_id}}"
+    description: ""
+auth:
+  type: oauth2
+  credentials:
+    accessTokenUrl: /api/v1/auth/login
+    grant_type: password_credentials
+settings: {}
+examples: .resources/Iniciar ejecución de la ruta.resources/examples
+order: 5000

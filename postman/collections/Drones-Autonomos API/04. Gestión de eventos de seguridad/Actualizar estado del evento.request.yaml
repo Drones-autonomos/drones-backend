@@ -1,0 +1,25 @@
+$kind: http-request
+description: Permite que el guardia o administrador actualice el estado del incidente a EN_REVISION o RESUELTO.
+url: "{{baseUrl}}/api/v1/events/:id/status"
+method: PATCH
+headers:
+  Content-Type: application/json
+  Accept: application/json
+pathVariables:
+  - key: id
+    value: "{{event_id}}"
+    description: ""
+body:
+  type: json
+  content: |-
+    {
+      "estado": "EN_REVISION"
+    }
+auth:
+  type: oauth2
+  credentials:
+    accessTokenUrl: /api/v1/auth/login
+    grant_type: password_credentials
+settings: {}
+examples: .resources/Actualizar estado del evento.resources/examples
+order: 3000

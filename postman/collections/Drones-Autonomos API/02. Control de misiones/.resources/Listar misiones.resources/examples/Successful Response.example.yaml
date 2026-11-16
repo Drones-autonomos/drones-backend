@@ -1,0 +1,57 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/missions/?estado=string&skip=0&limit=50"
+  method: GET
+  headers:
+    - key: Accept
+      value: application/json
+    - key: Authorization
+      value: <token>
+      description: "Added as a part of security scheme: oauth2"
+  queryParams:
+    - key: estado
+      value: string
+      description: "Estado: PROGRAMADA, EN_CURSO, CANCELANDO, FINALIZADA, CANCELADA, FALLIDA o RECUPERACION"
+    - key: skip
+      value: "0"
+      description: Registros a saltar
+    - key: limit
+      value: "50"
+      description: Límite por página
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      [
+        {
+          "nombre": "string",
+          "id": 6051,
+          "creado_por": 6061,
+          "estado": "string",
+          "created_at": "1972-06-13T23:44:31.115Z",
+          "descripcion": "string",
+          "horario_inicio_programado": "2010-11-29T00:37:38.299Z",
+          "iniciada_at": "1976-12-01T20:33:35.647Z",
+          "finalizada_at": "2010-12-09T23:47:29.196Z",
+          "waypoints_completados": 0,
+          "error_ejecucion": "string"
+        },
+        {
+          "nombre": "string",
+          "id": 3895,
+          "creado_por": 7470,
+          "estado": "string",
+          "created_at": "2013-09-30T03:05:18.760Z",
+          "descripcion": "string",
+          "horario_inicio_programado": "1992-06-26T07:50:17.157Z",
+          "iniciada_at": "2022-09-15T23:13:27.861Z",
+          "finalizada_at": "1952-04-03T02:13:38.954Z",
+          "waypoints_completados": 0,
+          "error_ejecucion": "string"
+        }
+      ]
+order: 1000

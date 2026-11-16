@@ -1,0 +1,54 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/v1/alerts/?leida=true&nivel_criticidad=string&skip=0&limit=50"
+  method: GET
+  headers:
+    - key: Accept
+      value: application/json
+    - key: Authorization
+      value: <token>
+      description: "Added as a part of security scheme: oauth2"
+  queryParams:
+    - key: leida
+      value: "true"
+      description: Filtrar por alertas leídas (true) o no leídas (false)
+    - key: nivel_criticidad
+      value: string
+      description: Filtrar por criticidad (ej. ALTA, CRITICA)
+    - key: skip
+      value: "0"
+      description: Número de registros a omitir para paginación
+    - key: limit
+      value: "50"
+      description: Cantidad máxima de alertas a retornar
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      [
+        {
+          "titulo": "string",
+          "mensaje": "string",
+          "nivel_criticidad": "string",
+          "id": 911,
+          "evento_id": 458,
+          "timestamp_envio": "1982-02-06T11:52:00.511Z",
+          "leida": false,
+          "destinatario_rol": "GUARDIA"
+        },
+        {
+          "titulo": "string",
+          "mensaje": "string",
+          "nivel_criticidad": "string",
+          "id": 7841,
+          "evento_id": 8393,
+          "timestamp_envio": "1969-02-23T05:06:51.698Z",
+          "leida": false,
+          "destinatario_rol": "GUARDIA"
+        }
+      ]
+order: 1000

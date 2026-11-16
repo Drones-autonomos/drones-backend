@@ -1,0 +1,14 @@
+$kind: http-request
+description: Retorna la información del usuario autenticado a partir del Bearer Token enviado en la cabecera.
+url: "{{baseUrl}}/api/v1/auth/me"
+method: GET
+headers:
+  Accept: application/json
+auth:
+  type: oauth2
+  credentials:
+    accessTokenUrl: /api/v1/auth/login
+    grant_type: password_credentials
+settings: {}
+examples: .resources/Obtener perfil del usuario actual.resources/examples
+order: 3000

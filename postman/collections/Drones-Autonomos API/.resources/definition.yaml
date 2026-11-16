@@ -1,0 +1,22 @@
+$kind: collection
+description: ""
+variables:
+  - key: baseUrl
+    value: /
+    disabled: false
+  - key: json_web_token_0xho
+    secret: true
+    disabled: false
+  - key: guardia_token
+    secret: true
+    disabled: false
+  - key: admin_token
+    secret: true
+    disabled: false
+  - key: json_web_token_1duj
+    secret: true
+    disabled: false
+auth:
+  type: bearer
+  credentials:
+    token: "{{vault:guardia_token}}"

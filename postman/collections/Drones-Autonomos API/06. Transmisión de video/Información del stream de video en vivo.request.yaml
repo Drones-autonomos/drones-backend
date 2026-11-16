@@ -1,0 +1,9 @@
+$kind: http-request
+description: Retorna la URL del servidor de streaming configurado para el dron (WebRTC/RTSP), su estado y resolución.
+url: "{{baseUrl}}/api/v1/video/stream-info"
+method: GET
+headers:
+  Accept: application/json
+settings: {}
+examples: .resources/Información del stream de video en vivo.resources/examples
+order: 1000

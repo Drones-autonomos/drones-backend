@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/settings/operating-window"
+method: PUT
+headers:
+  Content-Type: application/json
+  Accept: application/json
+body:
+  type: json
+  content: |-
+    {
+      "altitud_maxima_m": 200,
+      "peso_maximo_kg": 5,
+      "hora_apertura": "06:00",
+      "hora_cierre": "23:00"
+    }
+auth:
+  type: oauth2
+  credentials:
+    accessTokenUrl: /api/v1/auth/login
+    grant_type: password_credentials
+settings: {}
+examples: .resources/Update Operating Window.resources/examples
+order: 581

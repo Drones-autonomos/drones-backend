@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/recordings/upload"
+method: POST
+headers:
+  Content-Type: multipart/form-data
+  Accept: application/json
+body:
+  type: formdata
+  content:
+    - type: text
+      key: file
+      value: string
+    - type: text
+      key: duracion_segundos
+      value: "2379"
+    - type: text
+      key: vuelo_id
+      value: "6630"
+settings: {}
+examples: .resources/Subir segmento de video grabado.resources/examples
+order: 1000
