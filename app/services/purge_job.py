@@ -7,6 +7,8 @@ from app.models.recording import Grabacion
 
 logger = logging.getLogger("purge_job")
 
+scheduler = BackgroundScheduler()
+
 def purge_expired_recordings():
     """Busca y elimina grabaciones con fecha_purga vencida."""
     db = SessionLocal()

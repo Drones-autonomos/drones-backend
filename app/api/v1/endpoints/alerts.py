@@ -1,6 +1,7 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.services.notfication_service import notification_manager
-
+from jose import jwt, JWTError
+from app.core.config import settings
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
 
@@ -89,10 +90,25 @@ def mark_alert_as_read(
     return alerta
 
 @router.websocket("/ws/notifications")
-async def websocket_notifications(websocket: WebSocket):
+async def websocket_notifications(
+    websocket: WebSocket,
+    token: str | None = Query(None)
+):
+    if not token:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        rol = payload.get("rol")
+        if rol not in ["GUARDIA", "ADMIN"]:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+    except JWTError:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
     await notification_manager.connect(websocket)
     try:
         while True:
             await websocket.receive_text()  # Mantiene vivo el canal
-    except WebSocketDisconnect:
+    except Exception:
         notification_manager.disconnect(websocket)

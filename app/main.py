@@ -8,17 +8,21 @@ from fastapi.responses import JSONResponse
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.services.mission_service import MissionError, mission_service
-from app.services.purge_job import start_purge_scheduler
+from app.services.purge_job import (
+    scheduler, 
+    start_purge_scheduler,
+)
 
 @asynccontextmanager
-async def lifespan(app):
+async def lifespan(app: FastAPI):
     start_purge_scheduler()
-    yield
     if settings.MISSION_SCHEDULER_ENABLED:
         mission_service.start_scheduler()
     try:
         yield
     finally:
+        if scheduler and scheduler.running:
+            scheduler.shutdown(wait=False)
         await asyncio.to_thread(mission_service.shutdown)
 
 

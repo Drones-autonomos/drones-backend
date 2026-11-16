@@ -21,11 +21,13 @@ def get_password_hash(password: str) -> str:
 
 
 # firma un token de acceso con un sujeto sea id o email y una fecha de expiración
-def create_access_token(subject: str | Any, expires_delta: timedelta | None = None) -> str:
+def create_access_token(subject: str | int, expires_delta: timedelta | None = None, rol: str | None = None) -> str:
     if expires_delta:
         expire = datetime.now(UTC) + expires_delta
     else:
         expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode = {"exp": expire, "sub": str(subject)}
+    if rol:
+        to_encode["rol"] = rol
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
