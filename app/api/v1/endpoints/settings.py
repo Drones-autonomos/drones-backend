@@ -8,8 +8,8 @@ router = APIRouter()
 class NormativeConfig(BaseModel):
     altitud_maxima_m: float = 200.0
     peso_maximo_kg: float = 5.0
-    hora_apertura: str = "06:00"
-    hora_cierre: str = "23:00"
+    hora_apertura: str = "00:00"
+    hora_cierre: str = "23:59"
 
 CONFIG_ACTUAL = NormativeConfig()
 

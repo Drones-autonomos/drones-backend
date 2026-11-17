@@ -1,0 +1,29 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/drone/connection-event"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: "{\r
+
+    \  \"vuelo_id\": null,\r
+
+    \  \"estado_enlace\": \"DISCONNECTED_RTL\",\r
+
+    \  \"detalle\": \"Pérdida de enlace simulada en SITL/MAVProxy\",\r
+
+    \  \"bateria_porcentaje\": 68.5\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: "pm.test(\"Status 201 - RTL registrado en bitácora\", function () {\r
+
+      \    pm.response.to.have.status(201);\r
+
+      \    pm.expect(pm.response.json().registrado_en_bitacora).to.be.true;\r
+
+      });"
+    language: text/javascript
+order: 2000

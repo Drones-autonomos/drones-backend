@@ -1,6 +1,7 @@
 import io
 from datetime import datetime, timedelta
 from fastapi import status
+from app.api.v1.endpoints.settings import CONFIG_ACTUAL
 from app.core.security_crypto import encrypt_file_data, decrypt_file_data
 
 def test_encryption_decryption_cycle():
@@ -20,7 +21,8 @@ def test_normative_rejection_altitude_exceeded(client, admin_token):
         "horario_inicio_programado": "2026-11-04T10:00:00",
         "peso_dron_kg": 2.0,
         "waypoints": [
-            {"orden_waypoint": 1, "latitud": 20.58, "longitud": -100.38, "altitud_metros": 250.0} # > 200m
+            {"orden_waypoint": 1, "latitud": 20.58, "longitud": -100.38, "altitud_metros": 50.0},
+            {"orden_waypoint": 2, "latitud": 20.59, "longitud": -100.39, "altitud_metros": 250.0}
         ]
     }
     res = client.post("/api/v1/missions/", json=payload, headers=headers)
@@ -28,17 +30,25 @@ def test_normative_rejection_altitude_exceeded(client, admin_token):
 
 def test_normative_rejection_out_of_hours(client, admin_token):
     """Verifica rechazo HTTP 422 si el vuelo está fuera de la ventana operativa (RNF-02)."""
-    headers = {"Authorization": f"Bearer {admin_token}"}
-    payload = {
-        "nombre": "Misión Ilegal Madrugada",
-        "horario_inicio_programado": "2026-11-04T03:00:00", # 3 AM
-        "peso_dron_kg": 2.0,
-        "waypoints": [
-            {"orden_waypoint": 1, "latitud": 20.58, "longitud": -100.38, "altitud_metros": 50.0}
-        ]
-    }
-    res = client.post("/api/v1/missions/", json=payload, headers=headers)
-    assert res.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    from app.api.v1.endpoints.settings import CONFIG_ACTUAL
+    CONFIG_ACTUAL.hora_apertura = "06:00"
+    CONFIG_ACTUAL.hora_cierre = "23:00"
+    try:
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        payload = {
+            "nombre": "Vuelo Fuera de Horario",
+            "horario_inicio_programado": "2026-11-16T03:00:00",
+            "peso_dron_kg": 2.0,
+            "waypoints": [
+                {"orden_waypoint": 1, "latitud": 20.58, "longitud": -100.38, "altitud_metros": 50.0},
+                {"orden_waypoint": 2, "latitud": 20.59, "longitud": -100.39, "altitud_metros": 50.0},
+            ],
+        }
+        response = client.post("/api/v1/missions/", json=payload, headers=headers)
+        assert response.status_code == 422
+    finally:
+        CONFIG_ACTUAL.hora_apertura = "00:00"
+        CONFIG_ACTUAL.hora_cierre = "23:59"
 
 def test_guard_cannot_download_recording(client, guardia_token):
     """Valida control de acceso (RBAC): Guardia no puede descargar archivo directamente."""

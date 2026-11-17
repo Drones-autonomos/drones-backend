@@ -5,6 +5,8 @@ from app.models.event import Evento
 from app.models.detection import Deteccion
 from app.models.alert import Alerta
 from app.models.recording import Grabacion
+from app.models.flight_log import BitacoraVuelo
+from app.models.audit import Auditoria 
 
-__all__ = ["Base", "Rol", "Usuario", "Permiso","Mision", "Ruta", "Evento", "Deteccion", "Alerta", "Grabacion"]
+__all__ = ["Base", "Rol", "Usuario", "Permiso","Mision", "Ruta", "Evento", "Deteccion", "Alerta", "Grabacion", "BitacoraVuelo", "Auditoria"]
 

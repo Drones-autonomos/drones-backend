@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/drone/connection-status"
+method: GET
+scripts:
+  - type: afterResponse
+    code: "pm.test(\"Status 200 - Estado de conexión obtenido\", function () {\r
+
+      \    pm.response.to.have.status(200);\r
+
+      \    pm.expect(pm.response.json()).to.have.property(\"estado\");\r
+
+      });"
+    language: text/javascript
+order: 3000

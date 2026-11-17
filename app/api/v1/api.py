@@ -12,7 +12,10 @@ from app.api.v1.endpoints import (
     video,
     drone,
     recordings,
-    settings
+    settings,
+    audit,
+    flight_logs, 
+    geofences,
 )
 
 api_router = APIRouter()
@@ -44,3 +47,7 @@ api_router.include_router(video.router, prefix="/video", tags=["Video"])
 api_router.include_router(drone.router, prefix="/drone", tags=["Control de Vuelo"])
 api_router.include_router(recordings.router, prefix="/recordings", tags=["Grabaciones"])
 api_router.include_router(settings.router, prefix="/settings", tags=["Configuración Normativa"])
+
+api_router.include_router(flight_logs.router, prefix="/flight-logs", tags=["Bitácora de Vuelos"])
+api_router.include_router(audit.router, prefix="/audit", tags=["Auditoría"])
+api_router.include_router(geofences.router, prefix="/geofences", tags=["Geofencing"])
