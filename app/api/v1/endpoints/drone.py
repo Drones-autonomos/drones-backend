@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app.api import deps
+from app.services.charging_base_service import charging_base_service
 from app.services.drone_service import drone_service
 from app.services.mission_service import MissionError, MissionService, get_mission_service
 
@@ -51,6 +52,16 @@ def return_to_launch(service: MissionService = Depends(get_mission_service)):
 @router.post("/failsafe", dependencies=[Depends(deps.require_admin)])
 def configure_failsafe(enabled: bool = True):
     return flight_call(drone_service.configure_gcs_failsafe, enabled=enabled)
+
+
+@router.get("/charging-base", dependencies=[Depends(deps.require_guard_or_admin)])
+def get_charging_base_status():
+    return charging_base_service.get_status()
+
+
+@router.post("/charging-base/dock-recharge", dependencies=[Depends(deps.require_admin)])
+def dock_and_recharge(target_pct: float = 100.0):
+    return flight_call(charging_base_service.dock_and_recharge, drone_service, target_pct=target_pct)
 
 
 def takeoff_with_reservation(service, altitude):
