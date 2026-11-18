@@ -1,139 +1,123 @@
+"""Script autónomo de circuito cerrado con límites normativos de altitud, peso y horario."""
+
+import argparse
 import math
+import sys
 import time
+from datetime import datetime
+from pathlib import Path
 
-from dronekit import LocationGlobalRelative, connect
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
-# Connect to the vehicle.
-# '127.0.0.1:14550' is a typical connection string for a local simulator (like SITL).
-# For a physical drone, it might be a serial port (e.g., '/dev/ttyUSB0') or a UDP address.
-print("Connecting to vehicle on: 127.0.0.1:14550")
-vehicle = connect("127.0.0.1:14550", wait_ready=True)
-
-print("Disabling Geofence and Pre-arm checks for SITL...")
-vehicle.parameters["FENCE_ENABLE"] = 0
-vehicle.parameters["ARMING_CHECK"] = 0
-
-print("Force-setting the Home Location via MAVLink (teleporting drone to UAQ)...")
-# MAV_CMD_DO_SET_HOME (179)
-vehicle._master.mav.command_long_send(
-    vehicle._master.target_system,
-    vehicle._master.target_component,
-    179,
-    0,
-    0,  # 0 = usar coordenadas proporcionadas
-    0,
-    0,
-    0,  # params vacíos
-    20.70428,
-    -100.44358,
-    1900,  # lat, lon, alt
-)
-time.sleep(2)
+from app.core.normative import validate_altitude, validate_operating_window, validate_weight  # noqa: E402
 
 
-def get_location_metres(original_location, dNorth, dEast):
-    """
-    Devuelve un objeto LocationGlobalRelative con las coordenadas desplazadas
-    dNorth y dEast (en metros) desde la posición original.
-    """
-    earth_radius = 6378137.0  # Radio de la Tierra en metros
-    # Desplazamientos en radianes
-    dLat = dNorth / earth_radius
-    dLon = dEast / (earth_radius * math.cos(math.pi * original_location.lat / 180))
-
-    # Nueva posición en grados decimales
-    newlat = original_location.lat + (dLat * 180 / math.pi)
-    newlon = original_location.lon + (dLon * 180 / math.pi)
-
-    return LocationGlobalRelative(newlat, newlon, original_location.alt)
+def validate_flight_plan(
+    *,
+    altitude_m: float,
+    weight_kg: float,
+    flight_time: datetime | None = None,
+) -> None:
+    """Valida límites normativos antes de enviar comandos al dron."""
+    validate_altitude(altitude_m)
+    validate_weight(weight_kg)
+    validate_operating_window(flight_time or datetime.now())
 
 
-def arm_and_takeoff(target_altitude):
-    """
-    Arms vehicle and fly to a specified target altitude.
-    """
-    print("Basic pre-arm checks")
+def get_location_metres(original_location, d_north: float, d_east: float):
+    """Devuelve LocationGlobalRelative desplazada d_north/d_east metros."""
+    from dronekit import LocationGlobalRelative
 
-    # Wait until the vehicle is ready to be armed.
+    earth_radius = 6378137.0
+    d_lat = d_north / earth_radius
+    d_lon = d_east / (earth_radius * math.cos(math.pi * original_location.lat / 180))
+    new_lat = original_location.lat + (d_lat * 180 / math.pi)
+    new_lon = original_location.lon + (d_lon * 180 / math.pi)
+    return LocationGlobalRelative(new_lat, new_lon, original_location.alt)
+
+
+def arm_and_takeoff(vehicle, target_altitude: float) -> None:
+    """Arma el vehículo en modo GUIDED y asciende a la altitud normativa validada."""
+    validate_altitude(target_altitude)
     while not vehicle.is_armable:
-        print(" Waiting for vehicle to initialise...")
         time.sleep(1)
-
-    # Dado que desactivamos los chequeos de pre-armado, necesitamos asegurarnos manualmente
-    # de que el GPS ya se haya conectado antes de despegar. Si no, ArduPilot cree
-    # por defecto que está en Canberra, Australia.
-    print("Waiting for GPS 3D fix...")
     while vehicle.gps_0.fix_type < 3:
-        print(" Esperando satélites... Fix actual:", vehicle.gps_0.fix_type)
         time.sleep(1)
-
-    print("Arming motors")
-    # Set the vehicle mode to GUIDED, which is required for autonomous script control.
-    # En simuladores a veces rechaza el cambio si no está 100% listo, así que lo intentamos en bucle
     while vehicle.mode.name != "GUIDED":
-        print(" Intentando cambiar a modo GUIDED...")
-        # Hack para ArduCopter 3.3: DroneKit envía un comando incorrecto para cambiar de modo.
-        # Enviamos el mensaje SET_MODE directamente:
-        vehicle._master.mav.set_mode_send(
-            vehicle._master.target_system,
-            209,  # MAV_MODE_FLAG_CUSTOM_MODE_ENABLED (1) | MAV_MODE_FLAG_SAFETY_ARMED (128) | etc
-            4,  # 4 es el número de modo para GUIDED en ArduCopter
-        )
+        vehicle._master.mav.set_mode_send(vehicle._master.target_system, 209, 4)
         time.sleep(1)
-
-    # Loop to confirm the vehicle is actually armed before attempting to take off.
     while not vehicle.armed:
-        print(" Waiting for arming...")
         vehicle.armed = True
         time.sleep(1)
 
-    print("Arming motors")
     time.sleep(2)
-
-    print("Taking off!")
-    # Command the drone to take off vertically to the target altitude.
     vehicle.simple_takeoff(target_altitude)
-
-    # Loop to monitor the altitude during ascent.
     while True:
-        # Print the current altitude relative to the home location.
-        print(" Altitude: ", vehicle.location.global_relative_frame.alt)
-
-        # Check if the current altitude is at least 95% of the target altitude.
         if vehicle.location.global_relative_frame.alt >= target_altitude * 0.95:
-            print("Reached target altitude")
-            break  # Exit the loop once the target is reached.
-
-        # Wait 1 second before checking again.
+            break
         time.sleep(1)
 
 
-# Execute the takeoff function, instructing the drone to climb to 10 meters.
-arm_and_takeoff(10)
+def run_flight(
+    *,
+    connection_string: str = "127.0.0.1:14550",
+    target_altitude: float = 10.0,
+    weight_kg: float = 2.5,
+) -> None:
+    """Ejecuta un circuito cerrado validando límites normativos previo al despegue."""
+    validate_flight_plan(altitude_m=target_altitude, weight_kg=weight_kg)
 
-print("Hovering for 5 seconds...")
-time.sleep(5)
+    from dronekit import connect
 
-# Waypoint: recorre la Facultad de Informática en línea recta de sur a norte
-# El edificio mide ~200m en el eje N-S. Ajusta dEast para alinear con tu punto de inicio.
-current_loc = vehicle.location.global_relative_frame
-waypoint1 = get_location_metres(current_loc, dNorth=200, dEast=30)
+    vehicle = connect(connection_string, wait_ready=True)
+    try:
+        vehicle.parameters["FENCE_ENABLE"] = 0
+        vehicle.parameters["ARMING_CHECK"] = 0
+        vehicle._master.mav.command_long_send(
+            vehicle._master.target_system,
+            vehicle._master.target_component,
+            179,
+            0,
+            0,
+            0,
+            0,
+            0,
+            20.70428,
+            -100.44358,
+            1900,
+        )
+        time.sleep(2)
 
-print("Navigating to Waypoint 1 — recorrido norte de la facultad...")
-vehicle.simple_goto(waypoint1)
+        arm_and_takeoff(vehicle, target_altitude)
+        time.sleep(5)
 
-# Tiempo estimado para 200m a ~5 m/s de velocidad crucero = ~40 segundos
-# Aumentamos margen por aceleración/deceleración
-time.sleep(50)
+        current_loc = vehicle.location.global_relative_frame
+        waypoint1 = get_location_metres(current_loc, d_north=200, d_east=30)
+        vehicle.simple_goto(waypoint1)
+        time.sleep(50)
 
-print("Returning to Launch")
-# Change the mode to RTL (Return To Launch) to make the drone fly back to its starting point and land.
-vehicle._master.mav.set_mode_send(
-    vehicle._master.target_system,
-    209,
-    6,  # 6 es el número de modo para RTL en ArduCopter
-)
+        vehicle._master.mav.set_mode_send(vehicle._master.target_system, 209, 6)
+    finally:
+        vehicle.close()
 
-print("Closing vehicle object")
-# Close the connection to the vehicle to free up resources.
-vehicle.close()
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Script de circuito cerrado con límites normativos")
+    parser.add_argument("--connection", default="127.0.0.1:14550")
+    parser.add_argument("--altitude", type=float, default=10.0)
+    parser.add_argument("--weight", type=float, default=2.5)
+    parser.add_argument("--dry-run", action="store_true", help="Solo valida límites normativos sin conectar al dron")
+    args = parser.parse_args()
+
+    if args.dry_run:
+        validate_flight_plan(altitude_m=args.altitude, weight_kg=args.weight)
+        print("Validación normativa exitosa")
+        return
+
+    run_flight(connection_string=args.connection, target_altitude=args.altitude, weight_kg=args.weight)
+
+
+if __name__ == "__main__":
+    main()

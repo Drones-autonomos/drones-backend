@@ -5,6 +5,8 @@ import logging
 import math
 import time
 
+from app.core.normative import validate_altitude
+
 collections.MutableMapping = collections.abc.MutableMapping
 collections.Mapping = collections.abc.Mapping
 collections.Iterable = collections.abc.Iterable
@@ -95,8 +97,7 @@ class DroneService:
 
     def arm_and_takeoff(self, target_altitude: float, cancel=None, timeout=90) -> bool:
         self.ensure_ready()
-        if not math.isfinite(target_altitude) or not 2 <= target_altitude <= 200:
-            raise ValueError("Altitud fuera de rango (2–200 metros)")
+        validate_altitude(target_altitude)
         self._wait(lambda: self.vehicle.is_armable, timeout, "prearmado", cancel)
         self.vehicle.mode = VehicleMode("GUIDED")
         self._wait(lambda: self.vehicle.mode.name == "GUIDED", timeout, "modo GUIDED", cancel)
@@ -117,6 +118,7 @@ class DroneService:
 
     def goto_waypoint(self, waypoint, cancel=None, timeout=180):
         self.ensure_connected()
+        validate_altitude(waypoint.altitud_metros)
         if cancel is not None and cancel.is_set():
             raise FlightCancelled("Cancelación solicitada")
         if not self.vehicle.armed or self.vehicle.mode.name != "GUIDED":

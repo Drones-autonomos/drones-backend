@@ -1,11 +1,15 @@
-from datetime import UTC, datetime, time
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-ALTITUD_MAXIMA_NORMATIVA = 200.0  # metros
-PESO_MAXIMO_NORMATIVO = 5.0  # kg
-VENTANA_APERTURA_DEFAULT = time(6, 0)
-VENTANA_CIERRE_DEFAULT = time(23, 0)
+from app.core.normative import (
+    DEFAULT_ALTITUD_MAXIMA_M,
+    validate_altitude,
+    validate_operating_window,
+    validate_weight,
+)
+
+ALTITUD_MAXIMA_NORMATIVA = DEFAULT_ALTITUD_MAXIMA_M
 
 
 def utc_schedule(value):
@@ -21,6 +25,11 @@ class WaypointBase(BaseModel):
     latitud: float = Field(..., ge=-90.0, le=90.0, examples=[20.5888])
     longitud: float = Field(..., ge=-180.0, le=180.0, examples=[-100.3899])
     altitud_metros: float = Field(default=15.0, ge=2.0, le=ALTITUD_MAXIMA_NORMATIVA, examples=[15.0])
+
+    @field_validator("altitud_metros")
+    @classmethod
+    def validar_altitud(cls, v: float) -> float:
+        return validate_altitude(v)
 
 
 class WaypointResponse(WaypointBase):
@@ -42,9 +51,7 @@ class MisionCreate(MisionBase):
     @field_validator("peso_dron_kg")
     @classmethod
     def validar_peso(cls, v: float) -> float:
-        if v > PESO_MAXIMO_NORMATIVO:
-            raise ValueError(f"Violación normativa: El peso excede el límite permitido de {PESO_MAXIMO_NORMATIVO} kg.")
-        return v
+        return validate_weight(v)
 
     @field_validator("horario_inicio_programado", mode="before")
     @classmethod
@@ -52,11 +59,7 @@ class MisionCreate(MisionBase):
         if value is None:
             return None
         parsed = datetime.fromisoformat(value) if isinstance(value, str) else value
-        hora = parsed.time()
-        if hora < VENTANA_APERTURA_DEFAULT or hora > VENTANA_CIERRE_DEFAULT:
-            raise ValueError(
-                "Violación normativa (RNF-02): Fuera de la ventana operativa autorizada (06:00 - 23:00 hrs)."
-            )
+        validate_operating_window(parsed)
         return value
 
     @field_validator("waypoints")
