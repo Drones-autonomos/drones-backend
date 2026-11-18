@@ -1,5 +1,14 @@
 """Script autónomo de circuito cerrado con límites normativos de altitud, peso y horario."""
 
+# --- Parche de compatibilidad Python 3.10+ para DroneKit ---
+import collections
+import collections.abc
+
+collections.MutableMapping = collections.abc.MutableMapping
+collections.Mapping = collections.abc.Mapping
+collections.Iterable = collections.abc.Iterable
+# ------------------------------------------------------------
+
 import argparse
 import math
 import sys
