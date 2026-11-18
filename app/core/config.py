@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     MISSION_SCHEDULER_ENABLED: bool = False
+    VIDEO_STREAM_URL: str = "/api/v1/video/live"
+    VIDEO_STREAM_PROTOCOL: str = "MJPEG/WebSocket"
+    VIDEO_STREAM_FPS: int = 15
+    VIDEO_JPEG_QUALITY: int = 75
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
