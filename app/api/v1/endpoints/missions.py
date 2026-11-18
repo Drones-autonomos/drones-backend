@@ -9,6 +9,7 @@ from app.schemas.mission import (
     MisionResponse,
     MisionUpdate,
 )
+from app.services.geofence_service import validate_waypoints_in_db
 from app.services.mission_service import MissionService, get_mission_service
 
 router = APIRouter()
@@ -27,6 +28,11 @@ def create_mission(
     db: Session = Depends(deps.get_db),
     current_user: Usuario = Depends(deps.require_admin),
 ):
+    try:
+        validate_waypoints_in_db(db, mission_in.waypoints)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+
     # 1. Crear la cabecera de la misión asociada al usuario actual
     nueva_mision = Mision(
         creado_por=current_user.id,

@@ -1,15 +1,14 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from app.services.notfication_service import notification_manager
-from jose import jwt, JWTError
-from app.core.config import settings
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, status
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session, joinedload
 
 from app.api import deps
+from app.core.config import settings
 from app.models.alert import Alerta
 from app.models.event import Evento
 from app.models.user import Usuario
 from app.schemas.alert import AlertaDetailResponse, AlertaResponse
+from app.services.notfication_service import notification_manager
 
 router = APIRouter()
 
@@ -18,7 +17,10 @@ router = APIRouter()
     "/",
     response_model=list[AlertaResponse],
     summary="Historial de alertas de seguridad",
-    description="Retorna el listado de alertas generadas con filtros por estado de lectura y nivel de criticidad. Accesible por Guardia y Admin.",
+    description=(
+        "Retorna el listado de alertas generadas con filtros por estado de lectura "
+        "y nivel de criticidad. Accesible por Guardia y Admin."
+    ),
 )
 def list_alerts(
     leida: bool | None = Query(None, description="Filtrar por alertas leídas (true) o no leídas (false)"),
@@ -43,7 +45,9 @@ def list_alerts(
     "/{id}",
     response_model=AlertaDetailResponse,
     summary="Detalle completo de una alerta",
-    description="Retorna la información de la alerta junto con el evento asociado, coordenadas y evidencias visuales (frames).",
+    description=(
+        "Retorna la información de la alerta junto con el evento asociado, coordenadas y evidencias visuales (frames)."
+    ),
 )
 def get_alert_detail(
     id: int,
@@ -52,9 +56,7 @@ def get_alert_detail(
 ):
     alerta = (
         db.query(Alerta)
-        .options(
-            joinedload(Alerta.evento).joinedload(Evento.detecciones)
-        )
+        .options(joinedload(Alerta.evento).joinedload(Evento.detecciones))
         .filter(Alerta.id == id)
         .first()
     )
@@ -89,11 +91,9 @@ def mark_alert_as_read(
     db.refresh(alerta)
     return alerta
 
+
 @router.websocket("/ws/notifications")
-async def websocket_notifications(
-    websocket: WebSocket,
-    token: str | None = Query(None)
-):
+async def websocket_notifications(websocket: WebSocket, token: str | None = Query(None)):
     if not token:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return

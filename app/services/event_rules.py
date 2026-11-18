@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from sqlalchemy.orm import Session
 
 from app.models.alert import Alerta
@@ -9,9 +10,7 @@ from app.services.notfication_service import notification_manager
 UMBRAL_CONFIANZA = 0.70
 
 
-async def evaluate_detection_for_event(
-    db: Session, deteccion: Deteccion
-) -> Evento | None:
+async def evaluate_detection_for_event(db: Session, deteccion: Deteccion) -> Evento | None:
     """
     Evalúa la detección. Si cumple las condiciones de seguridad, genera el Evento,
     crea la Alerta vinculada y emite la notificación en tiempo real vía WebSocket.

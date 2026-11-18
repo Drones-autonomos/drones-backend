@@ -9,9 +9,10 @@ from app.api.v1.api import api_router
 from app.core.config import settings
 from app.services.mission_service import MissionError, mission_service
 from app.services.purge_job import (
-    scheduler, 
+    scheduler,
     start_purge_scheduler,
 )
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

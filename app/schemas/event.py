@@ -1,5 +1,7 @@
 from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
+
 from app.schemas.detection import DeteccionResponse
 
 
@@ -15,7 +17,7 @@ class EventoStatusUpdate(BaseModel):
         ...,
         pattern="^(EN_REVISION|RESUELTO)$",
         description="Nuevo estado del evento. Valores permitidos: 'EN_REVISION' o 'RESUELTO'",
-        examples=["EN_REVISION"]
+        examples=["EN_REVISION"],
     )
 
 
