@@ -6,6 +6,7 @@ from app.api.v1.endpoints import (
     detections,
     drone,
     event,
+    geofence,
     missions,
     recordings,
     settings,
@@ -40,6 +41,7 @@ api_router.include_router(alerts.router, prefix="/alerts", tags=["Alertas"])
 api_router.include_router(video.router, prefix="/video", tags=["Video"])
 
 api_router.include_router(drone.router, prefix="/drone", tags=["Control de Vuelo"])
+api_router.include_router(geofence.router, prefix="/geofences", tags=["Geocercas"])
 api_router.include_router(telemetry.router, prefix="/telemetry", tags=["Telemetría"])
 api_router.include_router(recordings.router, prefix="/recordings", tags=["Grabaciones"])
 api_router.include_router(settings.router, prefix="/settings", tags=["Configuración Normativa"])

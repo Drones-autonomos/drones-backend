@@ -11,6 +11,7 @@ from app.db.session import SessionLocal
 from app.models.mission import Mision
 from app.schemas.mission import MisionCreate, WaypointBase
 from app.services.drone_service import FlightCancelled, drone_service
+from app.services.geofence_service import validate_waypoints_in_db
 from app.services.telemetry_service import log_drone_snapshot
 
 logger = logging.getLogger(__name__)
@@ -64,8 +65,11 @@ class MissionService:
                         nombre=mission.nombre,
                         waypoints=[WaypointBase.model_validate(wp, from_attributes=True) for wp in mission.waypoints],
                     ).waypoints
+                    geofences = validate_waypoints_in_db(db, route)
                 except ValueError as exc:
-                    raise MissionError("La ruta guardada no es válida para ejecución", 422) from exc
+                    raise MissionError(str(exc), 422) from exc
+                if hasattr(self.drone, "set_geofences"):
+                    self.drone.set_geofences(geofences)
                 mission.estado = "EN_CURSO"
                 mission.vehiculo_activo = 1
                 mission.iniciada_at = datetime.now(UTC)

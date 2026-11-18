@@ -6,6 +6,7 @@ import math
 import time
 
 from app.core.normative import validate_altitude
+from app.services.geofence_service import GeofenceSpec, validate_point_against_specs
 
 collections.MutableMapping = collections.abc.MutableMapping
 collections.Mapping = collections.abc.Mapping
@@ -51,6 +52,10 @@ class DroneService:
         self.poll_interval = poll_interval
         self.clock = clock
         self.sleep = sleep
+        self.active_geofences: list[GeofenceSpec] = []
+
+    def set_geofences(self, geofences: list[GeofenceSpec]) -> None:
+        self.active_geofences = list(geofences)
 
     def ensure_connected(self):
         _require_dronekit()
@@ -119,6 +124,12 @@ class DroneService:
     def goto_waypoint(self, waypoint, cancel=None, timeout=180):
         self.ensure_connected()
         validate_altitude(waypoint.altitud_metros)
+        validate_point_against_specs(
+            float(waypoint.latitud),
+            float(waypoint.longitud),
+            float(waypoint.altitud_metros),
+            self.active_geofences,
+        )
         if cancel is not None and cancel.is_set():
             raise FlightCancelled("Cancelación solicitada")
         if not self.vehicle.armed or self.vehicle.mode.name != "GUIDED":
