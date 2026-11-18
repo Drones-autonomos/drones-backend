@@ -46,6 +46,10 @@ class FlightCancelled(RuntimeError):
     """La navegación se interrumpió antes de emitir el siguiente comando."""
 
 
+class SignalLossError(RuntimeError):
+    """Se perdió el enlace MAVLink/heartbeat con el vehículo."""
+
+
 class DroneService:
     def __init__(self, *, poll_interval=0.25, clock=time.monotonic, sleep=time.sleep):
         self.vehicle = None
@@ -63,7 +67,16 @@ class DroneService:
             raise RuntimeError("Dron no conectado")
         heartbeat = self.vehicle.last_heartbeat
         if heartbeat is None or not math.isfinite(heartbeat) or heartbeat > 5:
-            raise RuntimeError("Telemetría del dron ausente o desactualizada")
+            raise SignalLossError("Telemetría del dron ausente o desactualizada (pérdida de señal)")
+
+    def configure_gcs_failsafe(self, *, enabled: bool = True) -> dict:
+        """Configura el failsafe de pérdida de enlace GCS en ArduPilot (FS_GCS_ENABLE=1 -> RTL)."""
+        self.ensure_connected()
+        params = getattr(self.vehicle, "parameters", None)
+        value = 1 if enabled else 0
+        if params is not None:
+            params["FS_GCS_ENABLE"] = value
+        return {"fs_gcs_enable": value, "accion_perdida_enlace": "RTL" if enabled else "DESACTIVADO"}
 
     def is_grounded(self):
         self.ensure_connected()

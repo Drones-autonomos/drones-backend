@@ -48,15 +48,20 @@ def return_to_launch(service: MissionService = Depends(get_mission_service)):
     return {"message": "RTL solicitado; consulta la misión para confirmar el aterrizaje"}
 
 
+@router.post("/failsafe", dependencies=[Depends(deps.require_admin)])
+def configure_failsafe(enabled: bool = True):
+    return flight_call(drone_service.configure_gcs_failsafe, enabled=enabled)
+
+
 def takeoff_with_reservation(service, altitude):
     # La reserva pertenece al hilo: desconectar el cliente HTTP no libera un vuelo aún activo.
     with service.manual_control():
         return flight_call(drone_service.arm_and_takeoff, altitude)
 
 
-def flight_call(operation, *args):
+def flight_call(operation, *args, **kwargs):
     try:
-        return operation(*args)
+        return operation(*args, **kwargs)
     except MissionError:
         raise
     except TimeoutError as exc:
