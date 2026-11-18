@@ -13,10 +13,10 @@ import collections.abc
 
 collections.MutableMapping = collections.abc.MutableMapping  # parche dronekit
 
-import sys
-from pathlib import Path
 import os
 import secrets
+import sys
+from pathlib import Path
 
 # Configuración aislada: las pruebas no dependen de los secretos del .env local.
 os.environ["SECRET_KEY"] = secrets.token_hex(32)
@@ -33,6 +33,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
+from unittest.mock import patch
+
 from app.api import deps
 from app.core.security import get_password_hash
 from app.db.base_class import Base
@@ -40,8 +42,6 @@ from app.main import app
 from app.models.alert import Alerta  # noqa: F401  (registra la tabla en Base.metadata)
 from app.models.user import Rol, Usuario
 from app.services.mission_service import MissionService, get_mission_service
-from unittest.mock import patch
-import pytest
 
 engine_test = create_engine(
     "sqlite:///:memory:",
@@ -52,14 +52,16 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 
 @pytest.fixture(scope="function")
-def db () -> collections.abc.Generator:
+def db() -> collections.abc.Generator:
     Base.metadata.create_all(bind=engine_test)
     session = TestingSessionLocal()
 
-    session.add_all([
-        Rol(nombre="ADMIN", descripcion="Administrador del sistema"),
-        Rol(nombre="GUARDIA", descripcion="Guardia de seguridad"),
-    ])
+    session.add_all(
+        [
+            Rol(nombre="ADMIN", descripcion="Administrador del sistema"),
+            Rol(nombre="GUARDIA", descripcion="Guardia de seguridad"),
+        ]
+    )
     session.commit()
     try:
         yield session
@@ -137,7 +139,8 @@ def guardia_token(client, guardia_user) -> str:
     assert response.status_code == 200, response.text
     return response.json()["access_token"]
 
+
 @pytest.fixture(scope="session", autouse=True)
 def disable_scheduler_in_tests():
-  with patch("app.main.start_purge_scheduler"):
-    yield
+    with patch("app.main.start_purge_scheduler"):
+        yield

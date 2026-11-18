@@ -1,4 +1,3 @@
-import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
@@ -17,7 +16,9 @@ class StreamInfoResponse(BaseModel):
     "/stream-info",
     response_model=StreamInfoResponse,
     summary="Información del stream de video en vivo",
-    description="Retorna la URL del servidor de streaming configurado para el dron (WebRTC/RTSP), su estado y resolución.",
+    description=(
+        "Retorna la URL del servidor de streaming configurado para el dron (WebRTC/RTSP), su estado y resolución."
+    ),
 )
 def get_stream_info():
     return StreamInfoResponse(

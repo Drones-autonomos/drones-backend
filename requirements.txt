@@ -9,6 +9,7 @@ uvicorn[standard]>=0.30.0
 # =============================================================================
 pydantic[email]>=2.0.0
 pydantic-settings>=2.0.0
+python-multipart>=0.0.9
 
 # =============================================================================
 # Base de datos
@@ -18,11 +19,19 @@ alembic>=1.13.0
 psycopg2-binary>=2.9.0
 
 # =============================================================================
-# Seguridad / Autenticación
+# Seguridad / Autenticación y Tareas Programadas
 # =============================================================================
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4
 bcrypt>=4.0.1,<5.0.0  # passlib no es compatible con bcrypt>=5.0
+cryptography>=42.0.0
+apscheduler>=3.10.0
+
+# =============================================================================
+# Visión / Geometría
+# =============================================================================
+opencv-python-headless>=4.9.0
+shapely>=2.0.0
 
 # =============================================================================
 # Cliente HTTP (para tests de integración)
