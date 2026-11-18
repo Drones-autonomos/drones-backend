@@ -1,6 +1,17 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import alerts, auth, detections, drone, event, missions, recordings, settings, video
+from app.api.v1.endpoints import (
+    alerts,
+    auth,
+    detections,
+    drone,
+    event,
+    missions,
+    recordings,
+    settings,
+    telemetry,
+    video,
+)
 
 api_router = APIRouter()
 
@@ -29,5 +40,6 @@ api_router.include_router(alerts.router, prefix="/alerts", tags=["Alertas"])
 api_router.include_router(video.router, prefix="/video", tags=["Video"])
 
 api_router.include_router(drone.router, prefix="/drone", tags=["Control de Vuelo"])
+api_router.include_router(telemetry.router, prefix="/telemetry", tags=["Telemetría"])
 api_router.include_router(recordings.router, prefix="/recordings", tags=["Grabaciones"])
 api_router.include_router(settings.router, prefix="/settings", tags=["Configuración Normativa"])

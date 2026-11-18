@@ -11,6 +11,7 @@ from app.db.session import SessionLocal
 from app.models.mission import Mision
 from app.schemas.mission import MisionCreate, WaypointBase
 from app.services.drone_service import FlightCancelled, drone_service
+from app.services.telemetry_service import log_drone_snapshot
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +96,13 @@ class MissionService:
             mission = self._mission(db, mission_id)
             mission.waypoints_completados = count
 
+    def _log_telemetry(self, mission_id: int) -> None:
+        try:
+            with self.sessions() as db:
+                log_drone_snapshot(db, self.drone, mision_id=mission_id)
+        except Exception:
+            logger.debug("No se pudo registrar muestra de telemetría para misión %s", mission_id, exc_info=True)
+
     def _finish(self, mission_id, state, error=None, *, grounded):
         with self.sessions.begin() as db:
             mission = self._mission(db, mission_id)
@@ -109,11 +117,13 @@ class MissionService:
         try:
             if not self.drone.arm_and_takeoff(route[0].altitud_metros, cancel=cancel):
                 raise RuntimeError("Despegue rechazado")
+            self._log_telemetry(mission_id)
             for count, waypoint in enumerate(route, 1):
                 if cancel.is_set():
                     raise FlightCancelled("Cancelación solicitada")
                 self.drone.goto_waypoint(waypoint, cancel=cancel)
                 self._progress(mission_id, count)
+                self._log_telemetry(mission_id)
         except FlightCancelled:
             state = "CANCELADA"
         except Exception:
@@ -135,6 +145,7 @@ class MissionService:
                     state = "CANCELADA"
                 try:
                     self._finish(mission_id, state, error, grounded=grounded)
+                    self._log_telemetry(mission_id)
                 except Exception:
                     logger.exception("No se pudo persistir el cierre de la misión %s; revisar su reserva", mission_id)
                 finally:
