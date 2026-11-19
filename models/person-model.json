@@ -1,0 +1,10 @@
+[
+  {
+    "path": "models/yolov8n.onnx",
+    "labels": {
+      "0": "PERSONA"
+    },
+    "class_count": 80,
+    "input_size": 640
+  }
+]
