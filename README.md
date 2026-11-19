@@ -34,11 +34,11 @@ Proyecto integral de Backend, Simulación y Control desarrollado para la Faculta
 
 | Documento | Descripción |
 |---|---|
-| [📖 API Reference](docs/API.md) | Todos los endpoints: request, response, códigos de error, permisos por rol |
-| [🛠 Guía de Desarrollo](docs/DEVELOPMENT.md) | Instalación, entorno local, tests, linter, migraciones, Git workflow |
-| [🏗 Arquitectura](docs/ARCHITECTURE.md) | Diagramas del sistema, modelo de datos, flujo de autenticación, stack |
-| [🚀 Despliegue](docs/DEPLOYMENT.md) | Docker, docker-compose, producción, variables de entorno |
-| [🛸 Simulación SITL](docs/SITL_SIMULATION.md) | ArduPilot SITL + MAVProxy + DroneKit para pruebas sin hardware |
+| [API Reference](docs/API.md) | Todos los endpoints: request, response, códigos de error, permisos por rol |
+| [Guía de Desarrollo](docs/DEVELOPMENT.md) | Instalación, entorno local, tests, linter, migraciones, Git workflow |
+| [Arquitectura](docs/ARCHITECTURE.md) | Diagramas del sistema, modelo de datos, flujo de autenticación, stack |
+| [Despliegue](docs/DEPLOYMENT.md) | Docker, docker-compose, producción, variables de entorno |
+| [Simulación SITL](docs/SITL_SIMULATION.md) | ArduPilot SITL + MAVProxy + DroneKit para pruebas sin hardware |
 
 ---
 
@@ -213,6 +213,67 @@ pytest --cov=app --cov-report=term-missing
 
 ---
 
+### Simulación de Vuelo SITL (Patrullaje UAQ Juriquilla)
+
+Requiere **3 terminales**, ejecutadas en este orden desde la raíz del proyecto.
+
+#### Terminal 1 — Simulador SITL
+
+```bash
+bash scripts/run_sitl.sh
+```
+
+Deja la terminal abierta y espera a que el simulador termine de arrancar.
+
+#### Terminal 2 — MAVProxy con mapa
+
+```bash
+bash scripts/run_mavproxy.sh
+```
+
+Abre el mapa centrado en el campus y reenvía telemetría por `udp:127.0.0.1:14550`.
+
+#### Terminal 3 — Ejecutar el patrullaje
+
+```bash
+# Recorrido original (default)
+venv/bin/python scripts/drone_backend.py --ruta clasica
+
+# Variante por el corredor este y la plaza norte
+venv/bin/python scripts/drone_backend.py --ruta interior
+
+# Variante por el sector sur y las canchas
+venv/bin/python scripts/drone_backend.py --ruta canchas
+```
+
+| Opción | Comportamiento |
+|---|---|
+| `--ruta` | `clasica`, `interior` o `canchas` (default `clasica`) |
+| `--altitude` | Altitud relativa de recorrido en metros (default `30`) |
+| `--weight` | Peso del dron en kg (default `2.5`) |
+| `--connection` | Cadena de conexión DroneKit (default `127.0.0.1:14550`) |
+| `--dry-run` | Valida normativa y ruta sin conectar ni enviar comandos |
+
+Validación de una variante sin vuelo:
+
+```bash
+venv/bin/python scripts/drone_backend.py --ruta canchas --dry-run
+```
+
+El recorrido es `inicio → Base 1 → barrido → Base 2 → Base 1`. El dron vuela a 30 m relativos al punto de despegue, mantiene esa altura sobre Base 2 y solo desciende para el aterrizaje final en Base 1. La validación de ruta cubre todos los segmentos contra las zonas de interferencia configuradas, pero **no modela alturas de edificios ni terreno**.
+
+> **Importante:** corre una sola instancia del script de vuelo a la vez. Si ya hay una corriendo, deténla con `Ctrl+C` antes de lanzar otra; los procesos en ejecución no recargan cambios del código.
+
+#### Tests del patrullaje (no requieren SITL ni MAVProxy)
+
+```bash
+venv/bin/python -m pytest tests/test_patrol_navigation.py tests/test_drone_navigation.py tests/test_normative_flight.py -q
+```
+
+> Para la configuración completa del entorno SITL ver la [Guía de Simulación](docs/SITL_SIMULATION.md).
+
+---
+
 ### Linter
 
 El proyecto usa [Ruff](https://docs.astral.sh/ruff/) para linting y formato:
@@ -374,7 +435,7 @@ Aprovisionar la infraestructura fundacional del proyecto, configurando los entor
 
 ---
 
-> 📚 Toda la documentación técnica está en la carpeta [`docs/`](docs/).
+> Toda la documentación técnica está en la carpeta [`docs/`](docs/).
 
 ## Estabilización de la base
 

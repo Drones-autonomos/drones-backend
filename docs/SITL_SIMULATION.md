@@ -30,7 +30,7 @@ pip install future dronekit-sitl mavproxy
 
 ## Ejecución del Entorno
 
-Necesitas **dos terminales** simultáneas.
+Necesitas **tres terminales** simultáneas (SITL, MAVProxy y el script de patrullaje).
 
 ### Terminal 1 — Iniciar el Simulador SITL
 
@@ -59,13 +59,16 @@ Este script lanza MAVProxy con:
 
 > **Nota sobre el mapa:** MAVProxy por default abre el mapa centrado en Canberra, Australia (la ubicación de pruebas de ArduPilot). El script `run_mavproxy.sh` usa `--cmd="map zoom 16; map center 20.70428 -100.44358"` para forzar el mapa a Juriquilla al arrancar.
 
-### Terminal 3 (Opcional) — Probar la Conexión
+### Terminal 3 — Ejecutar el Patrullaje
 
 Una vez que ambas herramientas estén corriendo:
 
 ```bash
-source venv/bin/activate
-python scripts/drone_backend.py
+venv/bin/python scripts/drone_backend.py --ruta clasica
 ```
+
+También existen las variantes `--ruta interior` y `--ruta canchas`. El recorrido vuela a 30 m relativos al despegue (opción `--altitude`), mantiene esa altura sobre Base 2 y solo desciende para el aterrizaje final en Base 1. Con `--dry-run` solo se valida normativa y ruta, sin conectar al simulador.
+
+> Solo una instancia del script de vuelo a la vez: los procesos ya iniciados no recargan cambios del código.
 
 *(Nota técnica: ArduCopter 3.3 simulado por SITL tiene incompatibilidades al aceptar `MAV_CMD_DO_SET_MODE` desde DroneKit, por lo que internamente los scripts utilizan `set_mode_send` en raw MAVLink).*

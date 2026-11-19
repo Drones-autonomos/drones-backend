@@ -63,13 +63,13 @@ desktop.ini
 
 # =============================================================================
 # MAVProxy, SITL y ArduPilot — archivos generados en simulación
+# (se escriben en el directorio desde donde se lanza SITL/MAVProxy)
 # =============================================================================
-simulator/mav.parm
-simulator/mav.tlog
-simulator/mav.tlog.raw
-simulator/eeprom.bin
-simulator/*.rbin
-simulator/*.log
+mav.parm
+mav.tlog
+mav.tlog.raw
+eeprom.bin
+*.rbin
 
 # Archivos de marcadores temporales de MAVProxy
 marker_*.json

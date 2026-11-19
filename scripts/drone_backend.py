@@ -76,17 +76,17 @@ def arm_and_takeoff(vehicle, target_altitude: float) -> None:
 #   - Zonas azules expresadas como (lat, lon, radio_m).
 EARTH_RADIUS_M = 6378137.0
 
-HOME_COORDS = (20.704280, -100.443580)    # Facultad de Informática (despegue SITL)
+HOME_COORDS = (20.704280, -100.443580)  # Facultad de Informática (despegue SITL)
 BASE_1_COORDS = (20.701383, -100.441494)  # Base 1 (rojo, acceso sureste del campus)
 BASE_2_COORDS = (20.705145, -100.444093)  # Base 2 (rojo, estacionamiento noroeste)
 
 # Zonas de interferencia (azul): (lat, lon, radio_m)
 ZONAS_INTERFERENCIA = [
-    (20.703971, -100.444044, 19.0),       # edificio curvo noroeste
-    (20.703524, -100.443300, 22.0),       # cancha techada central (marca X)
-    (20.702825, -100.444314, 35.0),       # límite oeste junto a nave blanca (marca X)
-    (20.702645, -100.443300, 34.0),       # edificio de tejado rojo central
-    (20.701567, -100.442614, 33.0),       # zona sur "?"
+    (20.703971, -100.444044, 19.0),  # edificio curvo noroeste
+    (20.703524, -100.443300, 22.0),  # cancha techada central (marca X)
+    (20.702825, -100.444314, 35.0),  # límite oeste junto a nave blanca (marca X)
+    (20.702645, -100.443300, 34.0),  # edificio de tejado rojo central
+    (20.701567, -100.442614, 33.0),  # zona sur "?"
 ]
 
 # 1) Traslado inicial HOME → Base 1 reconociendo explanadas interiores del este
@@ -103,24 +103,24 @@ RUTA_TRASLADO = [
 # 2) Barrido estratégico Base 1 → Base 2: carriles serpenteantes S→N dentro del
 #    campus evitando todas las zonas azules. Un 3er valor indica segundos de hover.
 RUTA_BARRIDO: list[tuple[float, float] | tuple[float, float, float]] = [
-    (20.701640, -100.441931, 2),          # edificios del sur
-    (20.701984, -100.442135),             # rodeo noreste de zona "?"
-    (20.701984, -100.443096, 2),          # barrido sur (arriba de zona "?")
-    (20.701984, -100.443974),             # límite suroeste dentro del campus
-    (20.702194, -100.443974),             # cambio de carril sur-medio
-    (20.702194, -100.442708),             # barrido O→E al sur de tejados rojos
-    (20.702423, -100.442340, 2),          # explanada sur Biblioteca
-    (20.702882, -100.442544),             # costado interior de Biblioteca
-    (20.703169, -100.442830),             # corredor central entre zonas azules
-    (20.703169, -100.443791, 3),          # explanada nave blanca / cancha (lejos de X oeste)
-    (20.703589, -100.443688),             # cancha de futbol
-    (20.703952, -100.443586),             # corredor norte de canchas
-    (20.703933, -100.443035, 2),          # ala este interior (adentro de la reja)
-    (20.704296, -100.443178),             # frente a Facultad de Informática
-    (20.704380, -100.443811, 3),          # plaza circular / fuente de Informática
-    (20.704698, -100.443361, 2),          # edificio norte (BN)
-    (20.704965, -100.443484),             # estacionamiento norte (este)
-    (20.704965, -100.443893, 2),          # estacionamiento norte (centro)
+    (20.701640, -100.441931, 2),  # edificios del sur
+    (20.701984, -100.442135),  # rodeo noreste de zona "?"
+    (20.701984, -100.443096, 2),  # barrido sur (arriba de zona "?")
+    (20.701984, -100.443974),  # límite suroeste dentro del campus
+    (20.702194, -100.443974),  # cambio de carril sur-medio
+    (20.702194, -100.442708),  # barrido O→E al sur de tejados rojos
+    (20.702423, -100.442340, 2),  # explanada sur Biblioteca
+    (20.702882, -100.442544),  # costado interior de Biblioteca
+    (20.703169, -100.442830),  # corredor central entre zonas azules
+    (20.703169, -100.443791, 3),  # explanada nave blanca / cancha (lejos de X oeste)
+    (20.703589, -100.443688),  # cancha de futbol
+    (20.703952, -100.443586),  # corredor norte de canchas
+    (20.703933, -100.443035, 2),  # ala este interior (adentro de la reja)
+    (20.704296, -100.443178),  # frente a Facultad de Informática
+    (20.704380, -100.443811, 3),  # plaza circular / fuente de Informática
+    (20.704698, -100.443361, 2),  # edificio norte (BN)
+    (20.704965, -100.443484),  # estacionamiento norte (este)
+    (20.704965, -100.443893, 2),  # estacionamiento norte (centro)
 ]
 
 # 3) Regreso Base 2 → Base 1 por el corredor interior este (sin salir a la calle).
@@ -133,9 +133,45 @@ RUTA_REGRESO = [
     (20.701601, -100.441849),
 ]
 
-ALT_BASE_M = 6.0                  # altura de "acoplamiento" sobre cada base
-VEL_TRANSITO = 8.0                # m/s en regreso entre bases
-VEL_BARRIDO = 6.0                 # m/s durante el reconocimiento
+RUTAS_BARRIDO = {
+    "clasica": RUTA_BARRIDO,
+    "interior": [
+        (20.701640, -100.441931, 2),
+        (20.701950, -100.442100),
+        (20.702400, -100.442340, 3),
+        (20.702860, -100.442540),
+        (20.703200, -100.442840, 3),
+        (20.703740, -100.442974),
+        (20.704086, -100.443178),
+        (20.704380, -100.443811, 3),
+        (20.704698, -100.443361, 2),
+        (20.704965, -100.443484),
+        (20.704965, -100.443893, 2),
+    ],
+    "canchas": [
+        (20.701640, -100.441931),
+        (20.702014, -100.442135),
+        (20.702014, -100.443096, 3),
+        (20.702014, -100.443974),
+        (20.702224, -100.443974),
+        (20.702224, -100.442708),
+        (20.702423, -100.442340),
+        (20.702882, -100.442544),
+        (20.703200, -100.442840),
+        (20.703200, -100.443740, 3),
+        (20.703600, -100.443700, 3),
+        (20.703990, -100.443580),
+        (20.704380, -100.443811, 3),
+        (20.704698, -100.443361),
+        (20.704965, -100.443484),
+        (20.704965, -100.443893, 2),
+    ],
+}
+ALT_RECORRIDO_M = 30.0
+
+ALT_BASE_M = 6.0  # altura de "acoplamiento" sobre cada base
+VEL_TRANSITO = 8.0  # m/s en regreso entre bases
+VEL_BARRIDO = 6.0  # m/s durante el reconocimiento
 DIST_LLEGADA_M = 4.0
 TOL_ALT_M = 1.5
 TIMEOUT_TRAMO_S = 180
@@ -167,16 +203,18 @@ def _dist_segmento_m(
     return math.hypot(px - (ax + t * dx), py - (ay + t * dy))
 
 
-def validar_ruta(margen_m: float = 8.0) -> tuple[float, float]:
+def validar_ruta(margen_m: float = 8.0, *, nombre_ruta: str = "clasica") -> tuple[float, float]:
     """Verifica en metros reales que ningún tramo se acerque a zonas de interferencia.
 
     Devuelve (clareo mínimo en m, longitud total de la ruta en m).
     """
+    if nombre_ruta not in RUTAS_BARRIDO:
+        raise ValueError(f"Ruta desconocida: {nombre_ruta}. Opciones: {', '.join(RUTAS_BARRIDO)}")
     ruta: list[tuple[float, float]] = [
         HOME_COORDS,
         *RUTA_TRASLADO,
         BASE_1_COORDS,
-        *[(p[0], p[1]) for p in RUTA_BARRIDO],
+        *[(p[0], p[1]) for p in RUTAS_BARRIDO[nombre_ruta]],
         BASE_2_COORDS,
         *RUTA_REGRESO,
         BASE_1_COORDS,
@@ -244,13 +282,19 @@ def volar_a(
 def run_flight(
     *,
     connection_string: str = "127.0.0.1:14550",
-    target_altitude: float = 15.0,
+    target_altitude: float = ALT_RECORRIDO_M,
     weight_kg: float = 2.5,
+    nombre_ruta: str = "clasica",
 ) -> None:
     """Patrullaje: Base 1 → barrido evitando interferencias → Base 2 → Base 1."""
     validate_flight_plan(altitude_m=target_altitude, weight_kg=weight_kg)
-    clareo_m, longitud_m = validar_ruta()
-    print(f"Ruta validada: {longitud_m:.0f} m, clareo mínimo a interferencias {clareo_m:.1f} m")
+    validate_altitude(ALT_BASE_M)
+    clareo_m, longitud_m = validar_ruta(nombre_ruta=nombre_ruta)
+    barrido = RUTAS_BARRIDO[nombre_ruta]
+    print(
+        f"Ruta {nombre_ruta} validada: {longitud_m:.0f} m, "
+        f"clareo mínimo a interferencias {clareo_m:.1f} m, altitud relativa {target_altitude:.0f} m"
+    )
 
     from dronekit import connect
 
@@ -281,17 +325,15 @@ def run_flight(
         volar_a(vehicle, BASE_1_COORDS, target_altitude, VEL_BARRIDO, "Base 1")
 
         print("2/4 Barrido de reconocimiento Base 1 → Base 2")
-        for i, punto in enumerate(RUTA_BARRIDO, 1):
-            volar_a(vehicle, (punto[0], punto[1]), target_altitude, VEL_BARRIDO, f"tramo {i}/{len(RUTA_BARRIDO)}")
+        for i, punto in enumerate(barrido, 1):
+            volar_a(vehicle, (punto[0], punto[1]), target_altitude, VEL_BARRIDO, f"tramo {i}/{len(barrido)}")
             if len(punto) > 2:
                 print(f"    inspeccionando zona {punto[2]:.0f} s...")
                 time.sleep(punto[2])
         volar_a(vehicle, BASE_2_COORDS, target_altitude, VEL_BARRIDO, "Base 2")
 
-        print("3/4 Acoplamiento simulado en Base 2")
-        volar_a(vehicle, BASE_2_COORDS, ALT_BASE_M, VEL_BARRIDO, "descenso a Base 2")
+        print(f"3/4 Pausa sobre Base 2 a {target_altitude:.0f} m (sin descenso)")
         time.sleep(4)
-        volar_a(vehicle, BASE_2_COORDS, target_altitude, VEL_BARRIDO, "ascenso desde Base 2")
 
         print("4/4 Regreso Base 2 → Base 1")
         for i, punto in enumerate(RUTA_REGRESO, 1):
@@ -314,18 +356,33 @@ def run_flight(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Patrullaje B1→barrido→B2→B1 con límites normativos")
     parser.add_argument("--connection", default="127.0.0.1:14550")
-    parser.add_argument("--altitude", type=float, default=15.0)
+    parser.add_argument("--altitude", type=float, default=ALT_RECORRIDO_M, help="Altitud relativa de recorrido (30 m)")
     parser.add_argument("--weight", type=float, default=2.5)
+    parser.add_argument(
+        "--ruta",
+        choices=RUTAS_BARRIDO,
+        default="clasica",
+        help="clasica: barrido original; interior: corredor este y plaza norte; canchas: sector sur y canchas",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Solo valida normativa y ruta sin conectar al dron")
     args = parser.parse_args()
 
     if args.dry_run:
         validate_flight_plan(altitude_m=args.altitude, weight_kg=args.weight)
-        clareo_m, longitud_m = validar_ruta()
-        print(f"Validación normativa y de ruta exitosa — {longitud_m:.0f} m, clareo mínimo {clareo_m:.0f} m")
+        validate_altitude(ALT_BASE_M)
+        clareo_m, longitud_m = validar_ruta(nombre_ruta=args.ruta)
+        print(
+            f"Validación normativa y de ruta {args.ruta} exitosa — {longitud_m:.0f} m, "
+            f"clareo mínimo {clareo_m:.1f} m, altitud relativa {args.altitude:.0f} m"
+        )
         return
 
-    run_flight(connection_string=args.connection, target_altitude=args.altitude, weight_kg=args.weight)
+    run_flight(
+        connection_string=args.connection,
+        target_altitude=args.altitude,
+        weight_kg=args.weight,
+        nombre_ruta=args.ruta,
+    )
 
 
 if __name__ == "__main__":
