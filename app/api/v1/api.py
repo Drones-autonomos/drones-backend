@@ -10,6 +10,9 @@ from app.api.v1.endpoints import (
     missions,
     recordings,
     settings,
+    audit,
+    flight_logs, 
+    geofences,
     telemetry,
     video,
 )
@@ -45,3 +48,7 @@ api_router.include_router(geofence.router, prefix="/geofences", tags=["Geocercas
 api_router.include_router(telemetry.router, prefix="/telemetry", tags=["Telemetría"])
 api_router.include_router(recordings.router, prefix="/recordings", tags=["Grabaciones"])
 api_router.include_router(settings.router, prefix="/settings", tags=["Configuración Normativa"])
+
+api_router.include_router(flight_logs.router, prefix="/flight-logs", tags=["Bitácora de Vuelos"])
+api_router.include_router(audit.router, prefix="/audit", tags=["Auditoría"])
+api_router.include_router(geofences.router, prefix="/geofences", tags=["Geofencing"])

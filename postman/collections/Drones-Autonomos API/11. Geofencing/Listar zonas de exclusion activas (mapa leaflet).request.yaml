@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/geofences/?solo_activas=true"
+method: GET
+queryParams:
+  solo_activas: "true"
+scripts:
+  - type: afterResponse
+    code: "pm.test(\"Status 200 - Lista de zonas para mapa\", function () {\r
+
+      \    pm.response.to.have.status(200);\r
+
+      });"
+    language: text/javascript
+order: 2000
