@@ -29,6 +29,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
+from unittest.mock import patch
+
 from app.api import deps
 from app.core.security import get_password_hash
 from app.db.base_class import Base
@@ -54,10 +56,12 @@ def db() -> collections.abc.Generator:
     Base.metadata.create_all(bind=engine_test)
     session = TestingSessionLocal()
 
-    session.add_all([
-        Rol(nombre="ADMIN", descripcion="Administrador del sistema"),
-        Rol(nombre="GUARDIA", descripcion="Guardia de seguridad"),
-    ])
+    session.add_all(
+        [
+            Rol(nombre="ADMIN", descripcion="Administrador del sistema"),
+            Rol(nombre="GUARDIA", descripcion="Guardia de seguridad"),
+        ]
+    )
     session.commit()
     try:
         yield session
@@ -142,4 +146,6 @@ def guardia_token(client, guardia_user) -> str:
 def disable_scheduler_in_tests():
     # create=True evita que falle si stop_purge_scheduler o start_purge_scheduler no están en app.main
     with patch("app.main.start_purge_scheduler", create=True), patch("app.main.stop_purge_scheduler", create=True):
+        yield
+    with patch("app.main.start_purge_scheduler"):
         yield

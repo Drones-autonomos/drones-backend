@@ -11,6 +11,7 @@ from app.models.flight_log import BitacoraVuelo
 from app.models.mission import Mision
 from app.models.user import Usuario
 from app.schemas.geofence import DroneConnectionEventCreate
+from app.services.charging_base_service import charging_base_service
 from app.services.drone_service import drone_service
 from app.services.mission_service import MissionError, MissionService, get_mission_service
 from app.services.notfication_service import notification_manager
@@ -151,15 +152,30 @@ def return_to_launch(service: MissionService = Depends(get_mission_service), db:
     return {"message": "RTL solicitado; consulta la misión para confirmar el aterrizaje"}
 
 
+@router.post("/failsafe", dependencies=[Depends(deps.require_admin)])
+def configure_failsafe(enabled: bool = True):
+    return flight_call(drone_service.configure_gcs_failsafe, enabled=enabled)
+
+
+@router.get("/charging-base", dependencies=[Depends(deps.require_guard_or_admin)])
+def get_charging_base_status():
+    return charging_base_service.get_status()
+
+
+@router.post("/charging-base/dock-recharge", dependencies=[Depends(deps.require_admin)])
+def dock_and_recharge(target_pct: float = 100.0):
+    return flight_call(charging_base_service.dock_and_recharge, drone_service, target_pct=target_pct)
+
+
 def takeoff_with_reservation(service, altitude):
     # La reserva pertenece al hilo: desconectar el cliente HTTP no libera un vuelo aún activo.
     with service.manual_control():
         return flight_call(drone_service.arm_and_takeoff, altitude)
 
 
-def flight_call(operation, *args):
+def flight_call(operation, *args, **kwargs):
     try:
-        return operation(*args)
+        return operation(*args, **kwargs)
     except MissionError:
         raise
     except TimeoutError as exc:

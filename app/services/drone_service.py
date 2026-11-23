@@ -1,18 +1,17 @@
+# --- Parche de compatibilidad Python 3.10+ para DroneKit ---
+import collections
+import collections.abc
 import logging
 import math
 import time
 
-# --- Parche de compatibilidad Python 3.10+ para DroneKit ---
-import collections
-import collections.abc
+from app.core.normative import validate_altitude
+from app.services.geofence_service import GeofenceSpec, validate_point_against_specs
 
 collections.MutableMapping = collections.abc.MutableMapping
 collections.Mapping = collections.abc.Mapping
 collections.Iterable = collections.abc.Iterable
 # ------------------------------------------------------------
-
-from dronekit import VehicleMode  # Tu importación habitual continúa aquí abajo
-from dronekit import connect as dronekit_connect
 
 logger = logging.getLogger(__name__)
 
@@ -47,12 +46,20 @@ class FlightCancelled(RuntimeError):
     """La navegación se interrumpió antes de emitir el siguiente comando."""
 
 
+class SignalLossError(RuntimeError):
+    """Se perdió el enlace MAVLink/heartbeat con el vehículo."""
+
+
 class DroneService:
     def __init__(self, *, poll_interval=0.25, clock=time.monotonic, sleep=time.sleep):
         self.vehicle = None
         self.poll_interval = poll_interval
         self.clock = clock
         self.sleep = sleep
+        self.active_geofences: list[GeofenceSpec] = []
+
+    def set_geofences(self, geofences: list[GeofenceSpec]) -> None:
+        self.active_geofences = list(geofences)
 
     def ensure_connected(self):
         _require_dronekit()
@@ -60,7 +67,16 @@ class DroneService:
             raise RuntimeError("Dron no conectado")
         heartbeat = self.vehicle.last_heartbeat
         if heartbeat is None or not math.isfinite(heartbeat) or heartbeat > 5:
-            raise RuntimeError("Telemetría del dron ausente o desactualizada")
+            raise SignalLossError("Telemetría del dron ausente o desactualizada (pérdida de señal)")
+
+    def configure_gcs_failsafe(self, *, enabled: bool = True) -> dict:
+        """Configura el failsafe de pérdida de enlace GCS en ArduPilot (FS_GCS_ENABLE=1 -> RTL)."""
+        self.ensure_connected()
+        params = getattr(self.vehicle, "parameters", None)
+        value = 1 if enabled else 0
+        if params is not None:
+            params["FS_GCS_ENABLE"] = value
+        return {"fs_gcs_enable": value, "accion_perdida_enlace": "RTL" if enabled else "DESACTIVADO"}
 
     def is_grounded(self):
         self.ensure_connected()
@@ -99,8 +115,7 @@ class DroneService:
 
     def arm_and_takeoff(self, target_altitude: float, cancel=None, timeout=90) -> bool:
         self.ensure_ready()
-        if not math.isfinite(target_altitude) or not 2 <= target_altitude <= 200:
-            raise ValueError("Altitud fuera de rango (2–200 metros)")
+        validate_altitude(target_altitude)
         self._wait(lambda: self.vehicle.is_armable, timeout, "prearmado", cancel)
         self.vehicle.mode = VehicleMode("GUIDED")
         self._wait(lambda: self.vehicle.mode.name == "GUIDED", timeout, "modo GUIDED", cancel)
@@ -121,6 +136,13 @@ class DroneService:
 
     def goto_waypoint(self, waypoint, cancel=None, timeout=180):
         self.ensure_connected()
+        validate_altitude(waypoint.altitud_metros)
+        validate_point_against_specs(
+            float(waypoint.latitud),
+            float(waypoint.longitud),
+            float(waypoint.altitud_metros),
+            self.active_geofences,
+        )
         if cancel is not None and cancel.is_set():
             raise FlightCancelled("Cancelación solicitada")
         if not self.vehicle.armed or self.vehicle.mode.name != "GUIDED":

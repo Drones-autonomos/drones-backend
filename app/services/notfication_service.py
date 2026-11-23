@@ -1,5 +1,7 @@
 import json
+
 from fastapi import WebSocket
+
 
 class NotificationManager:
     def __init__(self):
@@ -25,5 +27,6 @@ class NotificationManager:
 
         for dead in disconnected:
             self.disconnect(dead)
+
 
 notification_manager = NotificationManager()

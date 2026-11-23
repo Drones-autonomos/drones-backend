@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
 
@@ -18,7 +19,10 @@ router = APIRouter()
     "/",
     response_model=list[EventoResponse],
     summary="Listar eventos de seguridad",
-    description="Retorna el listado de eventos con filtros opcionales de tipo, estado, rango de fechas y paginación. Accesible por Guardia y Admin.",
+    description=(
+        "Retorna el listado de eventos con filtros opcionales de tipo, estado, "
+        "rango de fechas y paginación. Accesible por Guardia y Admin."
+    ),
 )
 def list_events(
     tipo: str | None = Query(None, description="Filtrar por tipo (ej. PERSONA_NOCTURNA, HUMO_DETECTADO)"),
@@ -49,19 +53,16 @@ def list_events(
     "/{id}",
     response_model=EventoDetailResponse,
     summary="Obtener detalle de un evento",
-    description="Retorna el detalle completo de un evento junto con sus detecciones y enlaces a los frames de evidencia visual.",
+    description=(
+        "Retorna el detalle completo de un evento junto con sus detecciones y enlaces a los frames de evidencia visual."
+    ),
 )
 def get_event(
     id: int,
     db: Session = Depends(deps.get_db),
     current_user: Usuario = Depends(deps.require_guard_or_admin),
 ):
-    evento = (
-        db.query(Evento)
-        .options(joinedload(Evento.detecciones))
-        .filter(Evento.id == id)
-        .first()
-    )
+    evento = db.query(Evento).options(joinedload(Evento.detecciones)).filter(Evento.id == id).first()
     if not evento:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
