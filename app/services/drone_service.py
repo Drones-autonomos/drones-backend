@@ -42,6 +42,12 @@ def _require_dronekit():
         raise RuntimeError("dronekit no está instalado. Ejecuta: pip install dronekit  (requiere entorno SITL)")
 
 
+# Modos custom de ArduCopter para set_mode_send en MAVLink crudo.
+# El SITL copter-3.3 rechaza MAV_CMD_DO_SET_MODE (ver scripts/drone_backend.py);
+# enviamos ambos comandos para cubrir firmware antiguo y nuevo.
+_COPTER_MODES = {"GUIDED": 4, "RTL": 6, "LAND": 9}
+
+
 class FlightCancelled(RuntimeError):
     """La navegación se interrumpió antes de emitir el siguiente comando."""
 
@@ -113,11 +119,18 @@ class DroneService:
             logger.exception("No se pudo conectar al dron")
             return False
 
+    def _set_mode(self, name: str) -> None:
+        self.vehicle.mode = VehicleMode(name)
+        master = getattr(self.vehicle, "_master", None)
+        custom_mode = _COPTER_MODES.get(name)
+        if master is not None and custom_mode is not None:
+            master.mav.set_mode_send(master.target_system, 209, custom_mode)
+
     def arm_and_takeoff(self, target_altitude: float, cancel=None, timeout=90) -> bool:
         self.ensure_ready()
         validate_altitude(target_altitude)
         self._wait(lambda: self.vehicle.is_armable, timeout, "prearmado", cancel)
-        self.vehicle.mode = VehicleMode("GUIDED")
+        self._set_mode("GUIDED")
         self._wait(lambda: self.vehicle.mode.name == "GUIDED", timeout, "modo GUIDED", cancel)
         self.vehicle.armed = True
         self._wait(lambda: self.vehicle.armed, timeout, "armado", cancel, guided=True)
@@ -168,7 +181,7 @@ class DroneService:
 
     def return_to_launch(self) -> bool:
         self.ensure_connected()
-        self.vehicle.mode = VehicleMode("RTL")
+        self._set_mode("RTL")
         return True
 
     def wait_landed(self, timeout=180):

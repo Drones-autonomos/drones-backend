@@ -90,3 +90,4 @@ logs/*.log
 *.db
 *.sqlite
 *.sqlite3
+.pgdata/
