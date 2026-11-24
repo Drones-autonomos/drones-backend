@@ -1,5 +1,6 @@
 $kind: http-request
-description: Retorna el detalle completo de un evento junto con sus detecciones y enlaces a los frames de evidencia visual.
+description: Retorna el detalle completo de un evento junto con sus detecciones
+  y enlaces a los frames de evidencia visual.
 url: "{{baseUrl}}/api/v1/events/:id"
 method: GET
 headers:

@@ -1,11 +1,23 @@
 $kind: http-request
 name: Ingesta de detecciones por visión/IA
-description: |-
-  Recibe detecciones en tiempo real (humo/personas) generadas por el módulo de visión, las persiste y evalúa reglas de negocio para generar eventos.
+description: >-
+  Recibe detecciones en tiempo real (humo/personas) generadas por el módulo de
+  visión, las persiste y evalúa reglas de negocio para generar eventos.
 
-  {"type": "NEW_ALERT", "alerta_id": 2, "evento_id": 5, "titulo": "ALERTA DE SEGURIDAD: Persona Fuera de Horario", "mensaje": "Presencia de persona detectada a las 23:46:15 hrs con confianza del 95.5%.", "nivel_criticidad": "ALTA", "timestamp": "2026-11-15T23:46:15.872607", "evidencia": {"frame_url": "string", "latitud": -80.07009713790632, "longitud": 154.26759323662907}}
 
-  {"type": "NEW_ALERT", "alerta_id": 1, "evento_id": 4, "titulo": "ALERTA CR\\u00cdTICA: Humo Detectado", "mensaje": "Se detect\\u00f3 humo con 95.5% de confianza en coordenadas \[-80.07009713790632, 154.26759323662907\].", "nivel_criticidad": "CRITICA", "timestamp": "2026-11-15T23:44:01.850145", "evidencia": {"frame_url": "string", "latitud": -80.07009713790632, "longitud": 154.26759323662907}}
+  {"type": "NEW_ALERT", "alerta_id": 2, "evento_id": 5, "titulo": "ALERTA DE
+  SEGURIDAD: Persona Fuera de Horario", "mensaje": "Presencia de persona
+  detectada a las 23:46:15 hrs con confianza del 95.5%.", "nivel_criticidad":
+  "ALTA", "timestamp": "2026-11-15T23:46:15.872607", "evidencia": {"frame_url":
+  "string", "latitud": -80.07009713790632, "longitud": 154.26759323662907}}
+
+
+  {"type": "NEW_ALERT", "alerta_id": 1, "evento_id": 4, "titulo": "ALERTA
+  CR\\u00cdTICA: Humo Detectado", "mensaje": "Se detect\\u00f3 humo con 95.5% de
+  confianza en coordenadas \[-80.07009713790632, 154.26759323662907\].",
+  "nivel_criticidad": "CRITICA", "timestamp": "2026-11-15T23:44:01.850145",
+  "evidencia": {"frame_url": "string", "latitud": -80.07009713790632,
+  "longitud": 154.26759323662907}}
 url: "{{baseUrl}}/api/v1/detections/ingest"
 method: POST
 headers:
@@ -25,7 +37,8 @@ body:
     }
 scripts:
   - type: afterResponse
-    code: "pm.test(\"Detección ingresada\", () => pm.response.to.have.status(201));\r
+    code: "pm.test(\"Detección ingresada\", () =>
+      pm.response.to.have.status(201));\r
 
       const d = pm.response.json();\r
 

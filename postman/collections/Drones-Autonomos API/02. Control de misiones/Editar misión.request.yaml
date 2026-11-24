@@ -1,5 +1,6 @@
 $kind: http-request
-description: "Edita datos informativos mientras la misión se encuentre en estado PROGRAMADA[cite: 2]."
+description: "Edita datos informativos mientras la misión se encuentre en estado
+  PROGRAMADA[cite: 2]."
 url: "{{baseUrl}}/api/v1/missions/:id"
 method: PUT
 headers:

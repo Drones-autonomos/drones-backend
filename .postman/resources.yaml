@@ -5,7 +5,13 @@ workspace:
 
 cloudResources:
   collections:
-    ../postman/collections/Drones-Autonomos API: de1726f7-4c6c-4cf0-981b-370d74d6bf55
+    ../postman/collections/Drones-Autonomos API: 6b051eff683921fd11f5c6cf
+  environments:
+    ../postman/environments/Local E2E - Drones Autónomos.environment.yaml: 58302600-d37f5d6d-cd5f-45c6-84ca-2d44966b25c3
+  specs:
+    ../postman/specs/export/export.yaml: 07162efe-703d-4b7a-a01d-e7f7b9111490
+  globals:
+    ../postman/globals/workspace.globals.yaml: d0b18023-0359-4023-8c6c-947b9dc9c80c
 
 localResources:
   specs:

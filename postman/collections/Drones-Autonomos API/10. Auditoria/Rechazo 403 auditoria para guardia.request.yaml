@@ -3,7 +3,8 @@ url: "{{baseUrl}}/api/v1/audit/"
 method: GET
 scripts:
   - type: afterResponse
-    code: "pm.test(\"Status 403 - Guardia no tiene acceso a auditoría\", function () {\r
+    code: "pm.test(\"Status 403 - Guardia no tiene acceso a auditoría\", function ()
+      {\r
 
       \    pm.response.to.have.status(403);\r
 

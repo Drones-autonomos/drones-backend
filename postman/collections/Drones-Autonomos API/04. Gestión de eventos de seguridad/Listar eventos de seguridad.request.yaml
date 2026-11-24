@@ -1,6 +1,8 @@
 $kind: http-request
-description: Retorna el listado de eventos con filtros opcionales de tipo, estado, rango de fechas y paginación. Accesible por Guardia y Admin.
-url: "{{baseUrl}}/api/v1/events/?tipo=string&estado=string&fecha_inicio=2009-01-08T20:24:51.664Z&fecha_fin=2009-01-08T20:24:51.664Z&skip=0&limit=50"
+description: Retorna el listado de eventos con filtros opcionales de tipo,
+  estado, rango de fechas y paginación. Accesible por Guardia y Admin.
+url: "{{baseUrl}}/api/v1/events/?tipo=string&estado=string&fecha_inicio=2009-01\
+  -08T20:24:51.664Z&fecha_fin=2009-01-08T20:24:51.664Z&skip=0&limit=50"
 method: GET
 headers:
   Accept: application/json

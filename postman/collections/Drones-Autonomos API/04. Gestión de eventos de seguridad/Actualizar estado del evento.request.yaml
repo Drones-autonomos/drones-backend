@@ -1,5 +1,6 @@
 $kind: http-request
-description: Permite que el guardia o administrador actualice el estado del incidente a EN_REVISION o RESUELTO.
+description: Permite que el guardia o administrador actualice el estado del
+  incidente a EN_REVISION o RESUELTO.
 url: "{{baseUrl}}/api/v1/events/:id/status"
 method: PATCH
 headers:

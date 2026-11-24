@@ -1,5 +1,6 @@
 $kind: http-request
-description: Cancela misiones programadas o solicita interrupción con RTL. Requiere ADMIN o GUARDIA.
+description: Cancela misiones programadas o solicita interrupción con RTL.
+  Requiere ADMIN o GUARDIA.
 url: "{{baseUrl}}/api/v1/missions/:id/cancel"
 method: POST
 headers:

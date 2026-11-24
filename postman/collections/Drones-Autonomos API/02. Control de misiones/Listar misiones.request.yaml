@@ -7,7 +7,8 @@ headers:
 queryParams:
   - key: estado
     value: string
-    description: "Estado: PROGRAMADA, EN_CURSO, CANCELANDO, FINALIZADA, CANCELADA, FALLIDA o RECUPERACION"
+    description: "Estado: PROGRAMADA, EN_CURSO, CANCELANDO, FINALIZADA, CANCELADA,
+      FALLIDA o RECUPERACION"
   - key: skip
     value: "0"
     description: Registros a saltar

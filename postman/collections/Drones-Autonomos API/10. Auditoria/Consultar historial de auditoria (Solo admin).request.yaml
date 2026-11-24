@@ -10,7 +10,8 @@ auth:
     token: "{{admin_token}}"
 scripts:
   - type: afterResponse
-    code: "pm.test(\"Status 200 - Historial de auditoría accesible por Admin\", function () {\r
+    code: "pm.test(\"Status 200 - Historial de auditoría accesible por Admin\",
+      function () {\r
 
       \    pm.response.to.have.status(200);\r
 

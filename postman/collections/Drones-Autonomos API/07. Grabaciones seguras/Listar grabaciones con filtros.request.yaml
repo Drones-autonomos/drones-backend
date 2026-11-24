@@ -1,5 +1,6 @@
 $kind: http-request
-url: "{{baseUrl}}/api/v1/recordings/?vuelo_id=5506&fecha_inicio=2009-01-08T20:24:51.664Z&fecha_fin=2009-01-08T20:24:51.664Z&skip=0&limit=50"
+url: "{{baseUrl}}/api/v1/recordings/?vuelo_id=5506&fecha_inicio=2009-01-08T20:2\
+  4:51.664Z&fecha_fin=2009-01-08T20:24:51.664Z&skip=0&limit=50"
 method: GET
 headers:
   Accept: application/json

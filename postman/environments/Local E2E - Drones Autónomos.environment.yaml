@@ -3,9 +3,9 @@
   'values': [
     {'key': 'baseURL', 'value': 'http://127.0.0.1:8000', 'enabled': True},
     {'key': 'admin_email', 'value': 'admin@facultad.edu.mx', 'enabled': True},
-    {'key': 'admin_password', 'value': 'PsswrdSegura123!*', 'enabled': True},
+    {'key': 'admin_password', 'value': 'PsswrdSegura123!', 'enabled': True},
     {'key': 'guardia_email', 'value': 'guardia@facultad.edu.mx', 'enabled': True},
-    {'key': 'guardia_password', 'value': 'PasswordSegura123!*', 'enabled': True},
+    {'key': 'guardia_password', 'value': 'PasswordSegura123!', 'enabled': True},
     {'key': 'admin_token', 'value': '', 'enabled': True},
     {'key': 'guardia_token', 'value': '', 'enabled': True},
     {'key': 'mission_id', 'value': '', 'enabled': True},

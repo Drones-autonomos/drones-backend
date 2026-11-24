@@ -1,5 +1,6 @@
 $kind: http-request
-description: Crea una misión y registra sus waypoints de ruta en una sola transacción. Requiere rol ADMIN.
+description: Crea una misión y registra sus waypoints de ruta en una sola
+  transacción. Requiere rol ADMIN.
 url: "{{baseUrl}}/api/v1/missions/"
 method: POST
 headers:
@@ -34,7 +35,8 @@ auth:
     id: collection-daCffa70ab10f0E53BEEaed6-bearer
 scripts:
   - type: afterResponse
-    code: "pm.test(\"Misión creada\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));\r
+    code: "pm.test(\"Misión creada\", () =>
+      pm.expect(pm.response.code).to.be.oneOf([200, 201]));\r
 
       pm.collectionVariables.set(\"mission_id\", pm.response.json().id);"
     language: text/javascript
