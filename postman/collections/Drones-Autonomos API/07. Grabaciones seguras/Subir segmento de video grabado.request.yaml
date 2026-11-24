@@ -17,5 +17,5 @@ body:
       key: vuelo_id
       value: "6630"
 settings: {}
-examples: .resources/Subir segmento de video grabado.resources/examples
+examples: ./.resources/Subir segmento de video grabado.resources/examples
 order: 1000

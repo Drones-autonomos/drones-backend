@@ -1,10 +1,13 @@
 $kind: http-request
 url: "{{baseUrl}}/api/v1/audit/"
 method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{guardia_token}}"
 scripts:
   - type: afterResponse
-    code: "pm.test(\"Status 403 - Guardia no tiene acceso a auditoría\", function ()
-      {\r
+    code: "pm.test(\"Status 403 - Guardia no tiene acceso a auditoría\", function () {\r
 
       \    pm.response.to.have.status(403);\r
 

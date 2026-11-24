@@ -24,7 +24,7 @@ response:
     type: json
     content: |-
       {
-        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTQyMTg1MzQsInN1YiI6IjMifQ.AaG6_TBBz3b-69C2LAfxmu3G1DTh09bsufXcoDQxIa0",
+        "access_token": "{{json_web_token_0qrv}}",
         "token_type": "bearer"
       }
 order: 5000

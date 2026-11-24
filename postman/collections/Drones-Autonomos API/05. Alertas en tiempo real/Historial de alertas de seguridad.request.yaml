@@ -1,6 +1,5 @@
 $kind: http-request
-description: Retorna el listado de alertas generadas con filtros por estado de
-  lectura y nivel de criticidad. Accesible por Guardia y Admin.
+description: Retorna el listado de alertas generadas con filtros por estado de lectura y nivel de criticidad. Accesible por Guardia y Admin.
 url: "{{baseUrl}}/api/v1/alerts/?leida=true&nivel_criticidad=string&skip=0&limit=50"
 method: GET
 headers:
@@ -31,5 +30,5 @@ scripts:
       if (list.length) pm.collectionVariables.set(\"alert_id\", list[0].id);"
     language: text/javascript
 settings: {}
-examples: .resources/Historial de alertas de seguridad.resources/examples
+examples: ./.resources/Historial de alertas de seguridad.resources/examples
 order: 1000

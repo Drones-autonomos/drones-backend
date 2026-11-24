@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{baseUrl}}/api/v1/flight_logs/?skip=0&limit=50"
+url: "{{baseUrl}}/api/v1/flight-logs/?skip=0&limit=50"
 method: GET
 queryParams:
   skip: "0"

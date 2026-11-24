@@ -29,5 +29,5 @@ scripts:
       });"
     language: text/javascript
 settings: {}
-examples: .resources/Login - Admin.resources/examples
+examples: ./.resources/Login - Admin.resources/examples
 order: 1166

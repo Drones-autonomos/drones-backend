@@ -7,8 +7,7 @@ headers:
 queryParams:
   - key: estado
     value: string
-    description: "Estado: PROGRAMADA, EN_CURSO, CANCELANDO, FINALIZADA, CANCELADA,
-      FALLIDA o RECUPERACION"
+    description: "Estado: PROGRAMADA, EN_CURSO, CANCELANDO, FINALIZADA, CANCELADA, FALLIDA o RECUPERACION"
   - key: skip
     value: "0"
     description: Registros a saltar
@@ -21,5 +20,5 @@ auth:
     accessTokenUrl: /api/v1/auth/login
     grant_type: password_credentials
 settings: {}
-examples: .resources/Listar misiones.resources/examples
+examples: ./.resources/Listar misiones.resources/examples
 order: 2000

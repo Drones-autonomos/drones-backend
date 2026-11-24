@@ -4,14 +4,12 @@ method: POST
 headers:
   Accept: application/json
 pathVariables:
-  - key: id
-    value: "{{mission_id}}"
-    description: ""
+  id: "{{mission_id}}"
 auth:
   type: oauth2
   credentials:
     accessTokenUrl: /api/v1/auth/login
     grant_type: password_credentials
 settings: {}
-examples: .resources/Iniciar ejecución de la ruta.resources/examples
+examples: ./.resources/Iniciar ejecución de la ruta.resources/examples
 order: 5000

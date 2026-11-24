@@ -15,7 +15,8 @@ cloudResources:
 
 localResources:
   specs:
-    - ../postman/specs/export/export.yaml
+    - ../postman/specs/export/export.json
+    - ../C:/Users/angelin/Drones-Autonomos-backend/postman/specs/export/export.yaml
 resourceNameMappings:
   specs:
-    - ../postman/specs/export/export.yaml: export
+    - ../postman/specs/export/export.yaml: export.yaml

@@ -9,5 +9,5 @@ auth:
     accessTokenUrl: /api/v1/auth/login
     grant_type: password_credentials
 settings: {}
-examples: .resources/Get Operating Window.resources/examples
+examples: ./.resources/Get Operating Window.resources/examples
 order: 1000
