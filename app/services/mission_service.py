@@ -8,7 +8,10 @@ from threading import Event, RLock, Thread
 from sqlalchemy.exc import IntegrityError
 
 from app.db.session import SessionLocal
+from app.models.detection import Deteccion
+from app.models.flight_log import BitacoraVuelo
 from app.models.mission import Mision, Ruta
+from app.models.telemetry import TelemetriaVuelo
 from app.schemas.mission import MisionCreate, WaypointBase
 from app.services.drone_service import FlightCancelled, drone_service
 from app.services.geofence_service import (
@@ -128,10 +131,16 @@ class MissionService:
         if not targets:
             return
         base = mission.horario_inicio_programado
+        # La próxima corrida jamás puede quedar en el pasado: si la base ya
+        # quedó atrás (reinicio del servicio, misión atrasada), el conteo
+        # arranca desde ahora conservando la hora programada original.
+        referencia = max(base, datetime.now(UTC).replace(tzinfo=None))
         siguiente_fecha = None
-        for delta in range(1, 8):
-            candidata = base + timedelta(days=delta)
-            if candidata.weekday() in targets:
+        for delta in range(0, 8):
+            candidata = datetime.combine(
+                (referencia + timedelta(days=delta)).date(), base.time()
+            )
+            if candidata > referencia and candidata.weekday() in targets:
                 siguiente_fecha = candidata
                 break
         if siguiente_fecha is None:
@@ -176,6 +185,56 @@ class MissionService:
             siguiente_fecha,
         )
 
+    def _seal_bitacora(self, db, mission):
+        """Inserta el registro sellado de bitácora al concluir la misión.
+
+        `BitacoraVuelo` encadena el hash SHA-256 vía `before_insert` y es
+        inmutable (UPDATE/DELETE prohibidos): una misión con bitácora pasa a
+        ser archivo histórico permanente. Solo se sella una vez por misión.
+        """
+        if db.query(BitacoraVuelo).filter(BitacoraVuelo.vuelo_id == mission.id).first():
+            return
+        inicio = mission.iniciada_at or mission.created_at or datetime.now(UTC)
+        fin = mission.finalizada_at or datetime.now(UTC)
+        inicio = inicio.replace(tzinfo=None) if inicio.tzinfo else inicio
+        fin = fin.replace(tzinfo=None) if fin.tzinfo else fin
+        duracion = max(0, int((fin - inicio).total_seconds()))
+
+        muestras = db.query(TelemetriaVuelo).filter(TelemetriaVuelo.mision_id == mission.id).all()
+        resumen_telemetria = None
+        if muestras:
+            altitudes = [float(m.altitud_metros) for m in muestras if m.altitud_metros is not None]
+            baterias = [float(m.bateria_porcentaje) for m in muestras if m.bateria_porcentaje is not None]
+            resumen_telemetria = {
+                "muestras": len(muestras),
+                "altitud_max_m": max(altitudes) if altitudes else None,
+                "bateria_min_pct": min(baterias) if baterias else None,
+            }
+
+        partes = []
+        detecciones = db.query(Deteccion).filter(Deteccion.vuelo_id == mission.id).all()
+        if detecciones:
+            conteo = {}
+            for det in detecciones:
+                conteo[det.tipo] = conteo.get(det.tipo, 0) + 1
+            resumen_det = ", ".join(f"{tipo}: {n}" for tipo, n in sorted(conteo.items()))
+            partes.append(f"{len(detecciones)} detecciones ({resumen_det})")
+        if mission.error_ejecucion:
+            partes.append(mission.error_ejecucion)
+
+        db.add(
+            BitacoraVuelo(
+                vuelo_id=mission.id,
+                operador_id=mission.ejecutado_por or mission.creado_por,
+                fecha_inicio=inicio,
+                fecha_fin=fin,
+                duracion_segundos=duracion,
+                estado_final=mission.estado,
+                incidentes=" | ".join(partes) or None,
+                resumen_telemetria=resumen_telemetria,
+            )
+        )
+
     def _finish(self, mission_id, state, error=None, *, grounded):
         with self.sessions.begin() as db:
             mission = self._mission(db, mission_id)
@@ -184,7 +243,12 @@ class MissionService:
             mission.finalizada_at = datetime.now(UTC) if grounded else None
             if grounded:
                 mission.vehiculo_activo = None
-            if state == "FINALIZADA":
+            if state in ("FINALIZADA", "CANCELADA", "FALLIDA"):
+                try:
+                    self._seal_bitacora(db, mission)
+                except Exception:
+                    logger.exception("No se pudo sellar la bitácora de la misión %s", mission_id)
+            if state in ("FINALIZADA", "FALLIDA"):
                 try:
                     self._program_next_recurrence(db, mission)
                 except Exception:
@@ -259,6 +323,10 @@ class MissionService:
             mission.error_ejecucion = "Ejecución interrumpida; aterrizaje confirmado por el operador"
             mission.finalizada_at = datetime.now(UTC)
             mission.vehiculo_activo = None
+            try:
+                self._seal_bitacora(db, mission)
+            except Exception:
+                logger.exception("No se pudo sellar la bitácora de la misión %s", mission_id)
 
     @contextmanager
     def manual_control(self, *, allow_reserved=False):

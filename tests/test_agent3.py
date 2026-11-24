@@ -633,7 +633,10 @@ def test_finished_recurrent_mission_clones_next_run(mission_exec, db):
     assert clon.es_recurrente is True
     assert clon.dias_semana == ["lun", "vie"]
     assert clon.helipuerto_salida == "Helipuerto Norte"
-    # Siguiente día válido tras el lunes 5 → viernes 9 de enero
-    assert clon.horario_inicio_programado == datetime(2026, 1, 9, 10, 0, 0)
+    # La base (enero 2026) ya quedó en el pasado: la recurrencia se ancla a
+    # ahora conservando la hora programada (10:00) en el próximo lun/vie.
+    assert clon.horario_inicio_programado > datetime.now()
+    assert clon.horario_inicio_programado.weekday() in (0, 4)
+    assert clon.horario_inicio_programado.time() == lunes.time()
     assert len(clon.waypoints) == 2
     assert clon.waypoints[0].hover_segundos == 8.0

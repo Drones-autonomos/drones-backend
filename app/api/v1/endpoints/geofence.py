@@ -14,8 +14,15 @@ from app.schemas.geofence import (
     GeocercaUpdate,
     GeofenceCheckResponse,
     GeofencePointCheck,
+    RouteValidateRequest,
+    RouteValidateResponse,
+    RouteViolation,
 )
-from app.services.geofence_service import get_active_geofence_specs, validate_point_against_specs
+from app.services.geofence_service import (
+    evaluate_route_against_zones,
+    get_active_geofence_specs,
+    validate_point_against_specs,
+)
 
 router = APIRouter()
 
@@ -24,6 +31,7 @@ router = APIRouter()
     "/",
     response_model=GeocercaResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(deps.require_admin), Depends(deps.audit_action("CREAR_GEOCERCA"))],
     summary="Crear geocerca operativa (Solo Admin)",
 )
 def create_geofence(
@@ -67,6 +75,7 @@ def list_geofences(
 @router.put(
     "/{id}",
     response_model=GeocercaResponse,
+    dependencies=[Depends(deps.require_admin), Depends(deps.audit_action("EDITAR_GEOCERCA"))],
     summary="Editar geocerca operativa (Solo Admin)",
 )
 def update_geofence(
@@ -99,6 +108,7 @@ def update_geofence(
 @router.patch(
     "/{id}/toggle",
     response_model=GeocercaResponse,
+    dependencies=[Depends(deps.require_admin), Depends(deps.audit_action("TOGGLE_GEOCERCA"))],
     summary="Activar o desactivar una geocerca",
 )
 def toggle_geofence(
@@ -118,6 +128,7 @@ def toggle_geofence(
 @router.delete(
     "/{id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(deps.require_admin), Depends(deps.audit_action("ELIMINAR_GEOCERCA"))],
     summary="Eliminar geocerca",
 )
 def delete_geofence(
@@ -148,3 +159,38 @@ def validate_point(
     except ValueError as exc:
         return GeofenceCheckResponse(permitido=False, motivo=str(exc))
     return GeofenceCheckResponse(permitido=True, motivo="Coordenada dentro de geocerca autorizada")
+
+
+@router.post(
+    "/validate-route",
+    response_model=RouteValidateResponse,
+    summary="Validar una trayectoria completa contra geocercas y zonas de exclusión",
+    description=(
+        "Evalúa en una sola petición todos los waypoints de una ruta: cada punto "
+        "debe caer dentro de alguna geocerca operativa activa y la trayectoria "
+        "no debe cruzar zonas de exclusión `restringida` (respetando su tope "
+        "`altitud_max_m`). Las zonas `advertencia` se reportan sin bloquear."
+    ),
+)
+def validate_route(
+    body: RouteValidateRequest,
+    db: Session = Depends(deps.get_db),
+    current_user: Usuario = Depends(deps.require_guard_or_admin),
+):
+    violations: list[RouteViolation] = []
+    specs = get_active_geofence_specs(db)
+    for idx, wp in enumerate(body.waypoints, 1):
+        try:
+            validate_point_against_specs(wp.latitud, wp.longitud, wp.altitud_metros, specs)
+        except ValueError as exc:
+            violations.append(
+                RouteViolation(tipo="geocerca", motivo=str(exc), waypoint_index=idx)
+            )
+    error_zona, warnings = evaluate_route_against_zones(db, body.waypoints)
+    if error_zona:
+        violations.append(RouteViolation(tipo="exclusion", motivo=error_zona))
+    violations.extend(RouteViolation(tipo="advertencia", motivo=w) for w in warnings)
+    return RouteValidateResponse(
+        valid=not any(v.tipo != "advertencia" for v in violations),
+        violations=violations,
+    )

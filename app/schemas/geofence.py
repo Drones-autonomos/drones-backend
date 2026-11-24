@@ -162,3 +162,22 @@ class GeofencePointCheck(BaseModel):
 class GeofenceCheckResponse(BaseModel):
     permitido: bool
     motivo: str
+
+
+class RouteValidateRequest(BaseModel):
+    waypoints: list[GeofencePointCheck] = Field(
+        ..., min_length=1, max_length=500, description="Puntos de la trayectoria a validar"
+    )
+
+
+class RouteViolation(BaseModel):
+    tipo: Literal["geocerca", "exclusion", "advertencia"]
+    motivo: str
+    waypoint_index: int | None = Field(
+        default=None, description="Índice 1-based del waypoint asociado, si aplica"
+    )
+
+
+class RouteValidateResponse(BaseModel):
+    valid: bool
+    violations: list[RouteViolation]

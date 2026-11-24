@@ -1,17 +1,25 @@
 import json
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.normative import validate_operating_window
 from app.core.patrol_routes import get_patrol_presets
+from app.models.flight_log import BitacoraVuelo
 from app.models.mission import Mision, Ruta
+from app.models.setting import AjustesOperativos
+from app.models.telemetry import TelemetriaVuelo
 from app.models.user import Usuario
 from app.schemas.mission import (
+    OPERATING_TZ,
     MisionCreate,
     MisionResponse,
     MisionUpdate,
+    WaypointBase,
 )
 from app.schemas.patrol import PatrolPreset
 from app.services.geofence_service import validate_waypoints_against_geofences, validate_waypoints_in_db
@@ -36,7 +44,7 @@ def _persist_ruta(mision_id: int, wp, db: Session) -> Ruta:
 @router.post(
     "/",
     response_model=MisionResponse,
-    dependencies=[Depends(deps.require_admin)],
+    dependencies=[Depends(deps.require_admin), Depends(deps.audit_action("CREAR_MISION"))],
     status_code=status.HTTP_201_CREATED,
     summary="Crear misión con waypoints",
     description="Crea una misión y registra sus waypoints de ruta en una sola transacción. Requiere rol ADMIN.",
@@ -133,6 +141,82 @@ def list_patrol_presets(
     return get_patrol_presets()
 
 
+@router.post(
+    "/start-preset/{preset_key}",
+    response_model=MisionResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(deps.audit_action("INICIAR_PATRULLAJE_PRESET"))],
+    summary="Iniciar patrullaje preprogramado",
+    description=(
+        "Crea e inicia de inmediato una misión a partir de una ruta de "
+        "patrullaje preprogramada (clasica|interior|canchas). Valida la "
+        "ventana operativa actual, las geocercas y las zonas de exclusión. "
+        "Requiere rol ADMIN o GUARDIA — habilita el botón «Iniciar Ruta» de "
+        "Guardia sin exponer la creación de misiones arbitrarias."
+    ),
+)
+def start_preset_mission(
+    preset_key: str,
+    db: Session = Depends(deps.get_db),
+    current_user: Usuario = Depends(deps.require_guard_or_admin),
+    service: MissionService = Depends(get_mission_service),
+):
+    preset = next((p for p in get_patrol_presets() if p["id"] == preset_key), None)
+    if preset is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Preset de patrullaje desconocido: '{preset_key}'.",
+        )
+
+    # El despegue es inmediato: la ventana operativa se evalúa contra ahora.
+    try:
+        validate_operating_window(datetime.now(OPERATING_TZ).replace(tzinfo=None))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+
+    waypoints = [
+        WaypointBase(
+            orden_waypoint=idx,
+            latitud=w["latitud"],
+            longitud=w["longitud"],
+            altitud_metros=preset["altitude_m"],
+            hover_segundos=float(w.get("hover_s", 0.0) or 0.0),
+        )
+        for idx, w in enumerate(preset["waypoints"], 1)
+    ]
+    try:
+        validate_waypoints_in_db(db, waypoints)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+    error_zona = validate_waypoints_against_geofences(db, waypoints)
+    if error_zona:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_zona)
+
+    mision = Mision(
+        creado_por=current_user.id,
+        nombre=preset["name"],
+        descripcion=f"{preset['description']} · preset '{preset_key}'",
+        estado="PROGRAMADA",
+        es_recurrente=False,
+        evitacion_exclusion=True,
+    )
+    db.add(mision)
+    db.flush()
+    for wp in waypoints:
+        _persist_ruta(mision.id, wp, db)
+    db.commit()
+
+    # Propaga el HTTPException claro de start (503 sin conexión, 409 ocupado,
+    # 422 ruta rechazada) vía el handler global de MissionError.
+    service.start(mision.id, ejecutado_por=current_user.id)
+    db.expire_all()
+    return db.get(Mision, mision.id)
+
+
 class SchedulerToggleRequest(BaseModel):
     enabled: bool
 
@@ -152,15 +236,25 @@ def get_scheduler(
 
 @router.put(
     "/scheduler",
-    dependencies=[Depends(deps.require_admin)],
+    dependencies=[Depends(deps.require_admin), Depends(deps.audit_action("TOGGLE_SCHEDULER"))],
     summary="Activar o pausar el scheduler de vuelo autónomo",
 )
 def set_scheduler(
     body: SchedulerToggleRequest,
     service: MissionService = Depends(get_mission_service),
+    db: Session = Depends(deps.get_db),
     current_user: Usuario = Depends(deps.require_admin),
 ):
-    return service.set_scheduler_enabled(body.enabled)
+    result = service.set_scheduler_enabled(body.enabled)
+    # Persiste el estado para que el lifespan lo restaure tras un reinicio.
+    try:
+        row = db.query(AjustesOperativos).first()
+        if row is not None and hasattr(row, "scheduler_enabled"):
+            row.scheduler_enabled = bool(result["enabled"])
+            db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+    return result
 
 
 @router.get(
@@ -183,6 +277,7 @@ def get_mission(
 @router.put(
     "/{id}",
     response_model=MisionResponse,
+    dependencies=[Depends(deps.require_admin), Depends(deps.audit_action("EDITAR_MISION"))],
     summary="Editar misión",
     description="Edita datos informativos mientras la misión se encuentre en estado PROGRAMADA[cite: 2].",
 )
@@ -203,6 +298,13 @@ def update_mission(
         )
 
     update_data = mission_in.model_dump(exclude_unset=True)
+    # La evitación efectiva combina el payload con el valor persistido:
+    # solo se revalidan exclusiones cuando queda activa (paridad con POST /).
+    effective_evitacion = (
+        mission_in.evitacion_exclusion
+        if mission_in.evitacion_exclusion is not None
+        else mision.evitacion_exclusion
+    )
 
     if "waypoints" in update_data and update_data["waypoints"] is not None:
         waypoints = mission_in.waypoints
@@ -212,11 +314,12 @@ def update_mission(
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
             ) from exc
-        error_geofence = validate_waypoints_against_geofences(db, waypoints)
-        if error_geofence:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=error_geofence
-            )
+        if effective_evitacion:
+            error_geofence = validate_waypoints_against_geofences(db, waypoints)
+            if error_geofence:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail=error_geofence
+                )
         for row in list(mision.waypoints):
             db.delete(row)
         db.flush()
@@ -239,11 +342,14 @@ def update_mission(
 @router.delete(
     "/{id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(deps.require_admin)],
+    dependencies=[Depends(deps.require_admin), Depends(deps.audit_action("ELIMINAR_MISION"))],
     summary="Eliminar misión",
     description=(
-        "Elimina una misión en estado PROGRAMADA, CANCELADA, FINALIZADA o FALLIDA. "
-        "Rechaza misiones en curso o con reserva del vehículo."
+        "Elimina una misión en estado PROGRAMADA, CANCELADA o FALLIDA que no "
+        "tenga bitácora sellada. Las misiones con registro en BitacoraVuelo "
+        "forman parte del archivo histórico inmutable y no pueden borrarse "
+        "(la tabla prohíbe UPDATE/DELETE); al eliminar se desvincula la "
+        "telemetría asociada conservándola intacta."
     ),
 )
 def delete_mission(
@@ -254,11 +360,34 @@ def delete_mission(
     mision = db.query(Mision).filter(Mision.id == id).first()
     if not mision:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Misión no encontrada")
-    if mision.vehiculo_activo == 1 or mision.estado not in ("PROGRAMADA", "CANCELADA", "FALLIDA"):
+    if mision.vehiculo_activo == 1:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Solo se pueden eliminar misiones PROGRAMADA, CANCELADA o FALLIDA",
+            detail="La misión tiene una reserva de vuelo activa.",
         )
+    tiene_bitacora = (
+        db.query(BitacoraVuelo).filter(BitacoraVuelo.vuelo_id == id).first() is not None
+    )
+    if tiene_bitacora:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "La misión tiene una bitácora de vuelo sellada: forma parte del "
+                "archivo histórico inmutable y no puede eliminarse."
+            ),
+        )
+    if mision.estado not in ("PROGRAMADA", "CANCELADA", "FALLIDA"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Las misiones FINALIZADA forman parte del archivo histórico. "
+                "Solo se eliminan misiones PROGRAMADA, CANCELADA o FALLIDA."
+            ),
+        )
+    # La telemetría histórica se conserva: solo se desvincula de la misión.
+    db.query(TelemetriaVuelo).filter(TelemetriaVuelo.mision_id == id).update(
+        {"mision_id": None}, synchronize_session=False
+    )
     db.delete(mision)
     db.commit()
 
@@ -266,7 +395,7 @@ def delete_mission(
 @router.post(
     "/{id}/cancel",
     response_model=MisionResponse,
-    dependencies=[Depends(deps.require_guard_or_admin)],
+    dependencies=[Depends(deps.require_guard_or_admin), Depends(deps.audit_action("CANCELAR_MISION"))],
     summary="Cancelar misión",
     description=("Cancela misiones programadas o solicita interrupción con RTL. Requiere ADMIN o GUARDIA."),
 )
@@ -281,7 +410,13 @@ def cancel_mission(
     return db.get(Mision, id)
 
 
-@router.post("/{id}/start", response_model=MisionResponse, status_code=202, summary="Iniciar ejecución de la ruta")
+@router.post(
+    "/{id}/start",
+    response_model=MisionResponse,
+    status_code=202,
+    dependencies=[Depends(deps.require_guard_or_admin), Depends(deps.audit_action("INICIAR_MISION"))],
+    summary="Iniciar ejecución de la ruta",
+)
 def start_mission(
     id: int,
     db: Session = Depends(deps.get_db),
@@ -293,7 +428,12 @@ def start_mission(
     return db.get(Mision, id)
 
 
-@router.post("/{id}/confirm-landed", response_model=MisionResponse, summary="Recuperar reserva tras interrupción")
+@router.post(
+    "/{id}/confirm-landed",
+    response_model=MisionResponse,
+    dependencies=[Depends(deps.require_guard_or_admin), Depends(deps.audit_action("CONFIRMAR_ATERRIZAJE_MISION"))],
+    summary="Recuperar reserva tras interrupción",
+)
 def confirm_landed(
     id: int,
     db: Session = Depends(deps.get_db),
