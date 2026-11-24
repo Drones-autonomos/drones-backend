@@ -28,6 +28,10 @@ from app.models import Base
 
 target_metadata = Base.metadata
 
+# Misma normalización que app/db/session.py: SQLAlchemy 2.x resuelve el scheme
+# "postgresql://" al driver psycopg3, pero el proyecto instala psycopg2-binary.
+_db_url = settings.DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
@@ -46,7 +50,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = settings.DATABASE_URL
+    url = _db_url
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -67,7 +71,7 @@ def run_migrations_online() -> None:
     """
     from sqlalchemy import create_engine
 
-    connectable = create_engine(settings.DATABASE_URL)
+    connectable = create_engine(_db_url)
 
     with connectable.connect() as connection:
         context.configure(
