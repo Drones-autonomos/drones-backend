@@ -51,4 +51,4 @@ api_router.include_router(settings.router, prefix="/settings", tags=["Configurac
 
 api_router.include_router(flight_logs.router, prefix="/flight-logs", tags=["Bitácora de Vuelos"])
 api_router.include_router(audit.router, prefix="/audit", tags=["Auditoría"])
-api_router.include_router(geofences.router, prefix="/geofences", tags=["Geofencing"])
+api_router.include_router(geofences.router, prefix="/exclusion-zones", tags=["Zonas de Exclusión"])

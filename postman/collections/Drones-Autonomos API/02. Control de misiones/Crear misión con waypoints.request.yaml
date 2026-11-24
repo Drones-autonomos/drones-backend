@@ -29,10 +29,9 @@ body:
       "peso_dron_kg": 2.5
     }
 auth:
-  type: oauth2
+  type: inherit
   credentials:
-    accessTokenUrl: /api/v1/auth/login
-    grant_type: password_credentials
+    id: collection-daCffa70ab10f0E53BEEaed6-bearer
 scripts:
   - type: afterResponse
     code: "pm.test(\"Misión creada\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));\r

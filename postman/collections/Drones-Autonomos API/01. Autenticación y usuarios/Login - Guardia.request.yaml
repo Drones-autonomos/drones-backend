@@ -16,9 +16,17 @@ auth:
   type: noauth
 scripts:
   - type: afterResponse
-    code: "pm.test(\"Login guardia correcto\", () => pm.response.to.have.status(200));\r
+    code: "pm.test(\"Status 200 - Login Guardia exitoso\", function () {\r
 
-      pm.collectionVariables.set(\"guardia_token\", pm.response.json().access_token);"
+      \    pm.response.to.have.status(200);\r
+
+      \    const data = pm.response.json();\r
+
+      \    pm.environment.set(\"guardia_token\", data.access_token);\r
+
+      \    pm.collectionVariables.set(\"guardia_token\", data.access_token);\r
+
+      });"
     language: text/javascript
 settings: {}
 examples: .resources/Login - Guardia.resources/examples

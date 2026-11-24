@@ -17,7 +17,7 @@ router = APIRouter()
     summary="Registrar zona de exclusión rectangular",
     description="Crea un polígono rectangular restringido para validación de rutas y visualización en Leaflet.",
 )
-def create_geofence(
+def create_exclusion_zone(
     zona_in: ZonaExclusionCreate,
     db: Session = Depends(deps.get_db),
     current_user: Usuario = Depends(deps.require_admin),
@@ -42,7 +42,7 @@ def create_geofence(
     summary="Listar zonas de exclusión",
     description="Retorna las zonas rectangulares registradas para dibujarlas en el mapa Leaflet.",
 )
-def list_geofences(
+def list_exclusion_zones(
     solo_activas: bool = Query(True, description="Filtrar únicamente zonas activas"),
     db: Session = Depends(deps.get_db),
     current_user: Usuario = Depends(deps.require_guard_or_admin),
@@ -59,7 +59,7 @@ def list_geofences(
     dependencies=[Depends(deps.audit_action("ELIMINAR_ZONA_EXCLUSION"))],
     summary="Desactivar o eliminar zona de exclusión (Solo Admin)",
 )
-def delete_geofence(
+def delete_exclusion_zone(
     geofence_id: int,
     db: Session = Depends(deps.get_db),
     current_user: Usuario = Depends(deps.require_admin),
