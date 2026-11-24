@@ -26,7 +26,9 @@ def test_drone_permissions(client, request, monkeypatch, action, payload, role):
     monkeypatch.setattr(drone, "drone_service", service)
     headers = {} if role is None else {"Authorization": f"Bearer {request.getfixturevalue(role + '_token')}"}
     response = client.post(f"/api/v1/drone/{action}", json=payload, headers=headers)
-    expected = 401 if role is None else 403 if role == "guardia" and action != "rtl" else 200
+    # La guardia es la operadora de vuelo: connect/takeoff/rtl son acciones
+    # operativas permitidas a GUARDIA y ADMIN (política RBAC vigente).
+    expected = 401 if role is None else 200
     assert response.status_code == expected
     if expected != 200:
         assert service.mock_calls == []

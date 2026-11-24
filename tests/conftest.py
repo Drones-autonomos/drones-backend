@@ -147,5 +147,3 @@ def disable_scheduler_in_tests():
     # create=True evita que falle si stop_purge_scheduler o start_purge_scheduler no están en app.main
     with patch("app.main.start_purge_scheduler", create=True), patch("app.main.stop_purge_scheduler", create=True):
         yield
-    with patch("app.main.start_purge_scheduler"):
-        yield

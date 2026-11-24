@@ -1,7 +1,12 @@
-from datetime import datetime
-from sqlalchemy import Boolean, DateTime, Float, Integer, String
+"""Modelos ORM para geocercas operativas (circulares o poligonales) y zonas de exclusión."""
+
+from datetime import UTC, datetime
+
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
+
 from app.db.base_class import Base
+
 
 class ZonaExclusion(Base):
     __tablename__ = "zonas_exclusion"
@@ -13,15 +18,16 @@ class ZonaExclusion(Base):
     lon_min: Mapped[float] = mapped_column(Float, nullable=False)
     lon_max: Mapped[float] = mapped_column(Float, nullable=False)
     activa: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-"""Modelo ORM para geocercas operativas (circulares o poligonales)."""
-
-from datetime import UTC, datetime
-
-from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
-
-from app.db.base_class import Base
+    clasificacion: Mapped[str] = mapped_column(String(20), default="restringida", nullable=False)
+    motivo: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    descripcion: Mapped[str | None] = mapped_column(Text, nullable=True)
+    codigo_badge: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    altitud_max_m: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(UTC),
+        nullable=False,
+    )
 
 
 class Geocerca(Base):
@@ -37,6 +43,9 @@ class Geocerca(Base):
     poligono_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     altitud_min_m: Mapped[float] = mapped_column(Float, default=2.0, nullable=False)
     altitud_max_m: Mapped[float] = mapped_column(Float, default=200.0, nullable=False)
+    descripcion: Mapped[str | None] = mapped_column(Text, nullable=True)
+    motivo: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    codigo_badge: Mapped[str | None] = mapped_column(String(20), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),

@@ -1,7 +1,4 @@
 from fastapi import status
-from app.api.v1.endpoints.settings import CONFIG_ACTUAL
-from app.core.security_crypto import encrypt_file_data, decrypt_file_data
-
 from app.core.security_crypto import decrypt_file_data, encrypt_file_data
 
 
@@ -24,9 +21,7 @@ def test_normative_rejection_altitude_exceeded(client, admin_token):
         "peso_dron_kg": 2.0,
         "waypoints": [
             {"orden_waypoint": 1, "latitud": 20.58, "longitud": -100.38, "altitud_metros": 50.0},
-            {"orden_waypoint": 2, "latitud": 20.59, "longitud": -100.39, "altitud_metros": 250.0}
-        ]
-            {"orden_waypoint": 1, "latitud": 20.58, "longitud": -100.38, "altitud_metros": 250.0}  # > 200m
+            {"orden_waypoint": 2, "latitud": 20.59, "longitud": -100.39, "altitud_metros": 250.0},  # > 200m
         ],
     }
     res = client.post("/api/v1/missions/", json=payload, headers=headers)
@@ -35,9 +30,12 @@ def test_normative_rejection_altitude_exceeded(client, admin_token):
 
 def test_normative_rejection_out_of_hours(client, admin_token):
     """Verifica rechazo HTTP 422 si el vuelo está fuera de la ventana operativa (RNF-02)."""
-    from app.api.v1.endpoints.settings import CONFIG_ACTUAL
-    CONFIG_ACTUAL.hora_apertura = "06:00"
-    CONFIG_ACTUAL.hora_cierre = "23:00"
+    from app.core.normative import get_normative_config
+    config_actual = get_normative_config()
+    original_apertura = config_actual.hora_apertura
+    original_cierre = config_actual.hora_cierre
+    config_actual.hora_apertura = "06:00"
+    config_actual.hora_cierre = "23:00"
     try:
         headers = {"Authorization": f"Bearer {admin_token}"}
         payload = {
@@ -52,8 +50,8 @@ def test_normative_rejection_out_of_hours(client, admin_token):
         response = client.post("/api/v1/missions/", json=payload, headers=headers)
         assert response.status_code == 422
     finally:
-        CONFIG_ACTUAL.hora_apertura = "00:00"
-        CONFIG_ACTUAL.hora_cierre = "23:59"
+        config_actual.hora_apertura = original_apertura
+        config_actual.hora_cierre = original_cierre
     headers = {"Authorization": f"Bearer {admin_token}"}
     payload = {
         "nombre": "Misión Ilegal Madrugada",

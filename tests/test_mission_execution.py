@@ -295,7 +295,7 @@ def test_schedule_normalizes_timezone_and_route_order():
     assert [wp.orden_waypoint for wp in mission.waypoints] == [1, 2]
 
 
-@pytest.mark.parametrize("role,status", [(None, 401), ("guardia", 403), ("admin", 202)])
+@pytest.mark.parametrize("role,status", [(None, 401), ("guardia", 202), ("admin", 202)])
 def test_start_api_permissions(client, request, role, status, admin_token):
     service = app.dependency_overrides[get_mission_service]()
     service.drone = FakeDrone()
@@ -444,7 +444,7 @@ def test_api_cancel_and_manual_flight_conflict(client, admin_token, guardia_toke
     assert client.get(f"/api/v1/missions/{mission_id}", headers=headers).json()["estado"] == "CANCELADA"
 
 
-@pytest.mark.parametrize("role,expected", [(None, 401), ("guardia", 403), ("admin", 200)])
+@pytest.mark.parametrize("role,expected", [(None, 401), ("guardia", 200), ("admin", 200)])
 def test_api_recovery_permissions(client, admin_token, request, role, expected):
     service = app.dependency_overrides[get_mission_service]()
     service.drone = FakeDrone()

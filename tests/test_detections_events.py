@@ -83,24 +83,6 @@ def test_filter_events_by_type_and_date(client, guardia_token):
 def test_update_event_status_by_guard(client, guardia_token):
     headers = {"Authorization": f"Bearer {guardia_token}"}
 
-  # Crear un evento previo para que el test sea autónomo
-  client.post(
-      "/api/v1/detections/ingest",
-      json={
-          "tipo": "HUMO",
-          "nivel_confianza": 0.92,
-          "frame_url": "/storage/frames/smoke_status_test.jpg",
-          "latitud": 20.5885,
-          "longitud": -100.3892,
-          "timestamp": "2026-10-19T11:00:00",
-      },
-  )
-
-  # Obtener el último evento generado
-  events_res = client.get("/api/v1/events/", headers=headers)
-  eventos = events_res.json()
-  assert len(eventos) > 0
-  evento_id = eventos[0]["id"]
     ingest_res = client.post(
         "/api/v1/detections/ingest",
         json={

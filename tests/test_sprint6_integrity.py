@@ -2,6 +2,7 @@ import pytest
 from fastapi import status
 from app.models.flight_log import BitacoraVuelo
 from app.models.audit import Auditoria
+from app.models.geofence import ZonaExclusion
 
 def test_bitacora_and_audit_are_immutable(db):
     log = BitacoraVuelo(estado_final="COMPLETADO", duracion_segundos=120)
@@ -20,14 +21,20 @@ def test_bitacora_and_audit_are_immutable(db):
         db.commit()
     db.rollback()
 
-def test_mission_rejected_when_crossing_geofence(client, admin_token):
+def test_mission_rejected_when_crossing_geofence(client, admin_token, db):
     headers = {"Authorization": f"Bearer {admin_token}"}
-    # 1. Crear zona de exclusión rectangular
-    client.post(
-        "/api/v1/geofences/",
-        json={"nombre": "Zona Restringida Norte", "lat_min": 20.58, "lat_max": 20.60, "lon_min": -100.40, "lon_max": -100.38},
-        headers=headers
+    # 1. Crear zona de exclusión rectangular (modelo legacy sin endpoint REST)
+    db.add(
+        ZonaExclusion(
+            nombre="Zona Restringida Norte",
+            lat_min=20.58,
+            lat_max=20.60,
+            lon_min=-100.40,
+            lon_max=-100.38,
+            activa=True,
+        )
     )
+    db.commit()
     # 2. Intentar crear misión que cruza esa zona
     res = client.post(
         "/api/v1/missions/",

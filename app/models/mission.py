@@ -1,6 +1,8 @@
+import json
 from datetime import UTC, datetime
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     Float,
@@ -35,6 +37,28 @@ class Mision(Base):
     # Una única reserva persistente para el vehículo, incluso tras reiniciar la API.
     vehiculo_activo: Mapped[int | None] = mapped_column(Integer, unique=True, nullable=True)
 
+    # Metadatos operativos y de programación
+    ejecutado_por: Mapped[int | None] = mapped_column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    horario_fin_programado: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    duracion_estimada_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    helipuerto_salida: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    helipuerto_llegada: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    es_recurrente: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    dias_semana_json: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    evitacion_exclusion: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    bateria_minima_pct: Mapped[int | None] = mapped_column(Integer, nullable=True, default=35)
+    sensor_optico: Mapped[str | None] = mapped_column(String(60), nullable=True)
+
+    @property
+    def dias_semana(self) -> list[str] | None:
+        if not self.dias_semana_json:
+            return None
+        try:
+            parsed = json.loads(self.dias_semana_json)
+        except (TypeError, json.JSONDecodeError):
+            return None
+        return parsed if isinstance(parsed, list) else None
+
     # Relaciones
     waypoints: Mapped[list["Ruta"]] = relationship(
         "Ruta",
@@ -53,5 +77,6 @@ class Ruta(Base):
     latitud: Mapped[float] = mapped_column(Numeric(10, 8), nullable=False)
     longitud: Mapped[float] = mapped_column(Numeric(11, 8), nullable=False)
     altitud_metros: Mapped[float] = mapped_column(Float, default=15.0)
+    hover_segundos: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
 
     mision: Mapped["Mision"] = relationship("Mision", back_populates="waypoints")

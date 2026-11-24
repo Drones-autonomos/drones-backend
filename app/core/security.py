@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
 from jose import jwt
 from passlib.context import CryptContext
@@ -25,7 +26,12 @@ def create_access_token(subject: str | int, expires_delta: timedelta | None = No
         expire = datetime.now(UTC) + expires_delta
     else:
         expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode = {"exp": expire, "sub": str(subject)}
+    to_encode = {
+        "exp": expire,
+        "iat": datetime.now(UTC),
+        "sub": str(subject),
+        "jti": uuid4().hex,
+    }
     if rol:
         to_encode["rol"] = rol
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)

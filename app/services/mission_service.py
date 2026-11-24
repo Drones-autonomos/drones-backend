@@ -2,16 +2,22 @@
 
 import logging
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from threading import Event, RLock, Thread
 
 from sqlalchemy.exc import IntegrityError
 
 from app.db.session import SessionLocal
-from app.models.mission import Mision
+from app.models.detection import Deteccion
+from app.models.flight_log import BitacoraVuelo
+from app.models.mission import Mision, Ruta
+from app.models.telemetry import TelemetriaVuelo
 from app.schemas.mission import MisionCreate, WaypointBase
 from app.services.drone_service import FlightCancelled, drone_service
-from app.services.geofence_service import validate_waypoints_in_db
+from app.services.geofence_service import (
+    evaluate_route_against_zones,
+    validate_waypoints_in_db,
+)
 from app.services.telemetry_service import log_drone_snapshot
 
 logger = logging.getLogger(__name__)
@@ -43,7 +49,7 @@ class MissionService:
             raise MissionError("Misión no encontrada", 404)
         return mission
 
-    def start(self, mission_id):
+    def start(self, mission_id, ejecutado_por=None):
         with self.lock:
             if self.active_id is not None or self.manual_busy:
                 raise MissionError("El vehículo ya está ocupado")
@@ -68,9 +74,16 @@ class MissionService:
                     geofences = validate_waypoints_in_db(db, route)
                 except ValueError as exc:
                     raise MissionError(str(exc), 422) from exc
+                if mission.evitacion_exclusion:
+                    error_zona, warnings_zonas = evaluate_route_against_zones(db, route)
+                    if error_zona:
+                        raise MissionError(error_zona, 422)
+                    for warning in warnings_zonas:
+                        logger.warning("Misión %s: %s", mission_id, warning)
                 if hasattr(self.drone, "set_geofences"):
                     self.drone.set_geofences(geofences)
                 mission.estado = "EN_CURSO"
+                mission.ejecutado_por = ejecutado_por
                 mission.vehiculo_activo = 1
                 mission.iniciada_at = datetime.now(UTC)
                 mission.waypoints_completados = 0
@@ -95,6 +108,52 @@ class MissionService:
                 self._finish(mission_id, "FALLIDA", "No se pudo iniciar el ejecutor", grounded=True)
                 raise MissionError("No se pudo iniciar el ejecutor", 503) from exc
 
+    def retry(self, mission_id, ejecutado_por=None):
+        """Clona una misión terminal en una PROGRAMADA nueva y la inicia.
+
+        La misión original conserva su bitácora sellada y telemetría como
+        archivo histórico; el reintento genera un registro independiente.
+        Es un vuelo puntual: la cadena recurrente sigue perteneciendo a la
+        misión original. Si `start` falla (sin enlace, vehículo ocupado,
+        ruta rechazada), el clon queda PROGRAMADA para iniciarlo después.
+        """
+        with self.lock, self.sessions.begin() as db:
+            mission = self._mission(db, mission_id)
+            if mission.estado not in ("FALLIDA", "CANCELADA", "FINALIZADA"):
+                raise MissionError(
+                    f"Solo se reintentan misiones terminadas (FALLIDA, CANCELADA o FINALIZADA), no {mission.estado}",
+                    409,
+                )
+            clone = Mision(
+                creado_por=mission.creado_por,
+                nombre=mission.nombre,
+                descripcion=mission.descripcion,
+                estado="PROGRAMADA",
+                duracion_estimada_min=mission.duracion_estimada_min,
+                helipuerto_salida=mission.helipuerto_salida,
+                helipuerto_llegada=mission.helipuerto_llegada,
+                es_recurrente=False,
+                evitacion_exclusion=mission.evitacion_exclusion,
+                bateria_minima_pct=mission.bateria_minima_pct,
+                sensor_optico=mission.sensor_optico,
+            )
+            db.add(clone)
+            db.flush()
+            for wp in mission.waypoints:
+                db.add(
+                    Ruta(
+                        mision_id=clone.id,
+                        orden_waypoint=wp.orden_waypoint,
+                        latitud=wp.latitud,
+                        longitud=wp.longitud,
+                        altitud_metros=wp.altitud_metros,
+                        hover_segundos=wp.hover_segundos,
+                    )
+                )
+            clone_id = clone.id
+        self.start(clone_id, ejecutado_por=ejecutado_por)
+        return clone_id
+
     def _progress(self, mission_id, count):
         with self.sessions.begin() as db:
             mission = self._mission(db, mission_id)
@@ -107,6 +166,121 @@ class MissionService:
         except Exception:
             logger.debug("No se pudo registrar muestra de telemetría para misión %s", mission_id, exc_info=True)
 
+    _DIA_A_WEEKDAY = {"lun": 0, "mar": 1, "mie": 2, "jue": 3, "vie": 4, "sab": 5, "dom": 6}
+
+    def _program_next_recurrence(self, db, mission):
+        """Genera la siguiente misión PROGRAMADA para una misión recurrente finalizada."""
+        dias = mission.dias_semana or []
+        if not mission.es_recurrente or not dias or not mission.horario_inicio_programado:
+            return
+        targets = {self._DIA_A_WEEKDAY[d] for d in dias if d in self._DIA_A_WEEKDAY}
+        if not targets:
+            return
+        base = mission.horario_inicio_programado
+        # La próxima corrida jamás puede quedar en el pasado: si la base ya
+        # quedó atrás (reinicio del servicio, misión atrasada), el conteo
+        # arranca desde ahora conservando la hora programada original.
+        referencia = max(base, datetime.now(UTC).replace(tzinfo=None))
+        siguiente_fecha = None
+        for delta in range(0, 8):
+            candidata = datetime.combine(
+                (referencia + timedelta(days=delta)).date(), base.time()
+            )
+            if candidata > referencia and candidata.weekday() in targets:
+                siguiente_fecha = candidata
+                break
+        if siguiente_fecha is None:
+            return
+        siguiente = Mision(
+            creado_por=mission.creado_por,
+            nombre=mission.nombre,
+            descripcion=mission.descripcion,
+            estado="PROGRAMADA",
+            horario_inicio_programado=siguiente_fecha,
+            horario_fin_programado=(
+                mission.horario_fin_programado + timedelta(days=(siguiente_fecha - base).days)
+                if mission.horario_fin_programado
+                else None
+            ),
+            duracion_estimada_min=mission.duracion_estimada_min,
+            helipuerto_salida=mission.helipuerto_salida,
+            helipuerto_llegada=mission.helipuerto_llegada,
+            es_recurrente=True,
+            dias_semana_json=mission.dias_semana_json,
+            evitacion_exclusion=mission.evitacion_exclusion,
+            bateria_minima_pct=mission.bateria_minima_pct,
+            sensor_optico=mission.sensor_optico,
+        )
+        db.add(siguiente)
+        db.flush()
+        for wp in mission.waypoints:
+            db.add(
+                Ruta(
+                    mision_id=siguiente.id,
+                    orden_waypoint=wp.orden_waypoint,
+                    latitud=wp.latitud,
+                    longitud=wp.longitud,
+                    altitud_metros=wp.altitud_metros,
+                    hover_segundos=wp.hover_segundos,
+                )
+            )
+        logger.info(
+            "Misión recurrente %s regenerada como misión %s para %s",
+            mission.id,
+            siguiente.id,
+            siguiente_fecha,
+        )
+
+    def _seal_bitacora(self, db, mission):
+        """Inserta el registro sellado de bitácora al concluir la misión.
+
+        `BitacoraVuelo` encadena el hash SHA-256 vía `before_insert` y es
+        inmutable (UPDATE/DELETE prohibidos): una misión con bitácora pasa a
+        ser archivo histórico permanente. Solo se sella una vez por misión.
+        """
+        if db.query(BitacoraVuelo).filter(BitacoraVuelo.vuelo_id == mission.id).first():
+            return
+        inicio = mission.iniciada_at or mission.created_at or datetime.now(UTC)
+        fin = mission.finalizada_at or datetime.now(UTC)
+        inicio = inicio.replace(tzinfo=None) if inicio.tzinfo else inicio
+        fin = fin.replace(tzinfo=None) if fin.tzinfo else fin
+        duracion = max(0, int((fin - inicio).total_seconds()))
+
+        muestras = db.query(TelemetriaVuelo).filter(TelemetriaVuelo.mision_id == mission.id).all()
+        resumen_telemetria = None
+        if muestras:
+            altitudes = [float(m.altitud_metros) for m in muestras if m.altitud_metros is not None]
+            baterias = [float(m.bateria_porcentaje) for m in muestras if m.bateria_porcentaje is not None]
+            resumen_telemetria = {
+                "muestras": len(muestras),
+                "altitud_max_m": max(altitudes) if altitudes else None,
+                "bateria_min_pct": min(baterias) if baterias else None,
+            }
+
+        partes = []
+        detecciones = db.query(Deteccion).filter(Deteccion.vuelo_id == mission.id).all()
+        if detecciones:
+            conteo = {}
+            for det in detecciones:
+                conteo[det.tipo] = conteo.get(det.tipo, 0) + 1
+            resumen_det = ", ".join(f"{tipo}: {n}" for tipo, n in sorted(conteo.items()))
+            partes.append(f"{len(detecciones)} detecciones ({resumen_det})")
+        if mission.error_ejecucion:
+            partes.append(mission.error_ejecucion)
+
+        db.add(
+            BitacoraVuelo(
+                vuelo_id=mission.id,
+                operador_id=mission.ejecutado_por or mission.creado_por,
+                fecha_inicio=inicio,
+                fecha_fin=fin,
+                duracion_segundos=duracion,
+                estado_final=mission.estado,
+                incidentes=" | ".join(partes) or None,
+                resumen_telemetria=resumen_telemetria,
+            )
+        )
+
     def _finish(self, mission_id, state, error=None, *, grounded):
         with self.sessions.begin() as db:
             mission = self._mission(db, mission_id)
@@ -115,6 +289,16 @@ class MissionService:
             mission.finalizada_at = datetime.now(UTC) if grounded else None
             if grounded:
                 mission.vehiculo_activo = None
+            if state in ("FINALIZADA", "CANCELADA", "FALLIDA"):
+                try:
+                    self._seal_bitacora(db, mission)
+                except Exception:
+                    logger.exception("No se pudo sellar la bitácora de la misión %s", mission_id)
+            if state in ("FINALIZADA", "FALLIDA"):
+                try:
+                    self._program_next_recurrence(db, mission)
+                except Exception:
+                    logger.exception("No se pudo programar la siguiente recurrencia de la misión %s", mission_id)
 
     def _run(self, mission_id, route, cancel):
         state, error, grounded = "FINALIZADA", None, False
@@ -126,6 +310,9 @@ class MissionService:
                 if cancel.is_set():
                     raise FlightCancelled("Cancelación solicitada")
                 self.drone.goto_waypoint(waypoint, cancel=cancel)
+                hover = float(getattr(waypoint, "hover_segundos", 0.0) or 0.0)
+                if hover > 0 and cancel.wait(hover):
+                    raise FlightCancelled("Cancelación solicitada")
                 self._progress(mission_id, count)
                 self._log_telemetry(mission_id)
         except FlightCancelled:
@@ -182,6 +369,10 @@ class MissionService:
             mission.error_ejecucion = "Ejecución interrumpida; aterrizaje confirmado por el operador"
             mission.finalizada_at = datetime.now(UTC)
             mission.vehiculo_activo = None
+            try:
+                self._seal_bitacora(db, mission)
+            except Exception:
+                logger.exception("No se pudo sellar la bitácora de la misión %s", mission_id)
 
     @contextmanager
     def manual_control(self, *, allow_reserved=False):
@@ -243,6 +434,36 @@ class MissionService:
 
         self.scheduler = Thread(target=poll, name="mission-scheduler", daemon=True)
         self.scheduler.start()
+
+    def is_scheduler_running(self) -> bool:
+        return (
+            self.scheduler is not None
+            and self.scheduler.is_alive()
+            and not self.stop_event.is_set()
+        )
+
+    def set_scheduler_enabled(self, enabled: bool) -> dict:
+        """Enciende/apaga el scheduler autónomo sin afectar una misión en curso."""
+        if enabled:
+            if not self.is_scheduler_running():
+                self.start_scheduler()
+        else:
+            self.stop_event.set()
+            if self.scheduler is not None:
+                self.scheduler.join(timeout=5)
+                self.scheduler = None
+        return {"enabled": self.is_scheduler_running()}
+
+    def scheduler_status(self) -> dict:
+        with self.sessions() as db:
+            programmed = (
+                db.query(Mision).filter(Mision.estado == "PROGRAMADA").count()
+            )
+        return {
+            "enabled": self.is_scheduler_running(),
+            "running": self.is_scheduler_running(),
+            "programmed_count": programmed,
+        }
 
     def shutdown(self):
         self.stop_event.set()
