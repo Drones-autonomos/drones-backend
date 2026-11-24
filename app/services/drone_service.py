@@ -45,7 +45,18 @@ def _require_dronekit():
 # Modos custom de ArduCopter para set_mode_send en MAVLink crudo.
 # El SITL copter-3.3 rechaza MAV_CMD_DO_SET_MODE (ver scripts/drone_backend.py);
 # enviamos ambos comandos para cubrir firmware antiguo y nuevo.
-_COPTER_MODES = {"GUIDED": 4, "RTL": 6, "LAND": 9}
+_COPTER_MODES = {"GUIDED": 4, "LOITER": 5, "RTL": 6, "LAND": 9, "BRAKE": 17}
+
+
+class _Waypoint:
+    """Waypoint mínimo compatible con goto_waypoint (latitud/longitud/altitud_metros)."""
+
+    __slots__ = ("latitud", "longitud", "altitud_metros")
+
+    def __init__(self, latitud: float, longitud: float, altitud_metros: float) -> None:
+        self.latitud = latitud
+        self.longitud = longitud
+        self.altitud_metros = altitud_metros
 
 
 class FlightCancelled(RuntimeError):
@@ -63,6 +74,8 @@ class DroneService:
         self.clock = clock
         self.sleep = sleep
         self.active_geofences: list[GeofenceSpec] = []
+        self.paused = False
+        self._paused_target = None
 
     def set_geofences(self, geofences: list[GeofenceSpec]) -> None:
         self.active_geofences = list(geofences)
@@ -100,7 +113,11 @@ class DroneService:
             if cancel is not None and cancel.is_set():
                 raise FlightCancelled("Cancelación solicitada")
             if guided and self.vehicle.mode.name != "GUIDED":
-                raise RuntimeError("El vehículo abandonó el modo GUIDED")
+                if self.paused:
+                    # Mientras el operador mantenga la pausa el timeout no corre.
+                    deadline = self.clock() + timeout
+                else:
+                    raise RuntimeError("El vehículo abandonó el modo GUIDED")
             if predicate():
                 return
             if self.clock() >= deadline:
@@ -110,8 +127,14 @@ class DroneService:
     def connect(self, connection_string: str = "127.0.0.1:14550") -> bool:
         _require_dronekit()
         if self.vehicle:
-            self.ensure_connected()
-            return True
+            try:
+                self.ensure_connected()
+                return True
+            except Exception:
+                # Vehículo con heartbeat muerto (SITL reiniciado, enlace caído):
+                # liberarlo para poder reconectar; si no, el objeto obsoleto
+                # bloquea cualquier intento posterior de conexión.
+                self.close()
         try:
             self.vehicle = dronekit_connect(connection_string, wait_ready=True, timeout=30, heartbeat_timeout=15)
             return True
@@ -161,6 +184,7 @@ class DroneService:
         if not self.vehicle.armed or self.vehicle.mode.name != "GUIDED":
             raise RuntimeError("La navegación requiere un vehículo armado en GUIDED")
         target = LocationGlobalRelative(waypoint.latitud, waypoint.longitud, waypoint.altitud_metros)
+        self._paused_target = target
         self.vehicle.simple_goto(target)
 
         def arrived():
@@ -179,10 +203,148 @@ class DroneService:
 
         self._wait(arrived, timeout, "llegada al waypoint", cancel, guided=True)
 
+    def pause_flight(self) -> dict:
+        """Detiene el avance sosteniendo posición (BRAKE, con LOITER como respaldo)."""
+        self.ensure_connected()
+        if not self.vehicle.armed:
+            raise RuntimeError("No hay un vuelo activo que pausar")
+        hold_mode = None
+        for candidate in ("BRAKE", "LOITER"):
+            self._set_mode(candidate)
+            try:
+                self._wait(
+                    lambda mode_name=candidate: self.vehicle.mode.name == mode_name,
+                    5,
+                    f"modo {candidate}",
+                )
+                hold_mode = candidate
+                break
+            except TimeoutError:
+                continue
+        if hold_mode is None:
+            raise RuntimeError("El vehículo no aceptó el modo de espera (BRAKE/LOITER)")
+        self.paused = True
+        return {"pausado": True, "modo": hold_mode}
+
+    def resume_flight(self) -> dict:
+        """Reanuda el vuelo pausado: vuelve a GUIDED y reemite el waypoint en curso."""
+        self.ensure_connected()
+        if not self.paused:
+            return {"pausado": False, "modo": getattr(self.vehicle.mode, "name", None)}
+        self._set_mode("GUIDED")
+        self._wait(lambda: self.vehicle.mode.name == "GUIDED", 10, "modo GUIDED")
+        self.paused = False
+        if self._paused_target is not None:
+            self.vehicle.simple_goto(self._paused_target)
+        return {"pausado": False, "modo": "GUIDED"}
+
+    def emergency_stop(self) -> dict:
+        """Parada de emergencia: aterriza en el punto actual (LAND) sin esperar la misión."""
+        self.ensure_connected()
+        self.paused = False
+        self._paused_target = None
+        self._set_mode("LAND")
+        self._wait(lambda: self.vehicle.mode.name == "LAND", 10, "modo LAND")
+        return {"detenido": True, "modo": "LAND"}
+
+    def get_failsafe_status(self) -> dict:
+        """Estado del failsafe de pérdida de enlace GCS (FS_GCS_ENABLE)."""
+        connected = self.vehicle is not None
+        enabled = None
+        if connected:
+            params = getattr(self.vehicle, "parameters", None)
+            if params is not None:
+                try:
+                    enabled = bool(int(float(params.get("FS_GCS_ENABLE", 0))))
+                except (TypeError, ValueError):
+                    enabled = None
+        return {"connected": connected, "enabled": enabled}
+
+    def preflight_check(self) -> dict:
+        """Verificación prevuelo: no lanza si el dron está desconectado, solo reporta."""
+        checks: dict[str, bool] = {}
+        detalles: dict = {}
+        connected = self.vehicle is not None
+        checks["conexion"] = connected
+        if not connected:
+            checks.update({"enlace": False, "armable": False, "bateria": False, "gps": False})
+            return {"ready": False, "checks": checks, "detalles": detalles}
+
+        heartbeat = getattr(self.vehicle, "last_heartbeat", None)
+        enlace = heartbeat is not None and math.isfinite(heartbeat) and heartbeat <= 5
+        checks["enlace"] = enlace
+        detalles["heartbeat_age_s"] = heartbeat
+
+        armable = bool(getattr(self.vehicle, "is_armable", False))
+        checks["armable"] = armable
+
+        battery = getattr(self.vehicle, "battery", None)
+        level = getattr(battery, "level", None)
+        checks["bateria"] = level is not None and level >= 30
+        detalles["bateria_porcentaje"] = level
+
+        gps = getattr(self.vehicle, "gps_0", None)
+        fix = getattr(gps, "fix_type", None)
+        checks["gps"] = fix is not None and fix >= 3
+        detalles["gps_fix_type"] = fix
+        detalles["satelites"] = getattr(gps, "satellites_visible", None)
+
+        failsafe = self.get_failsafe_status()["enabled"]
+        detalles["failsafe_gcs"] = failsafe
+        detalles["modo"] = getattr(getattr(self.vehicle, "mode", None), "name", None)
+        detalles["armado"] = bool(getattr(self.vehicle, "armed", False))
+        detalles["geocercas_cargadas"] = len(self.active_geofences)
+
+        ready = all(checks.values())
+        return {"ready": ready, "checks": checks, "detalles": detalles}
+
     def return_to_launch(self) -> bool:
         self.ensure_connected()
+        self.paused = False
+        self._paused_target = None
         self._set_mode("RTL")
         return True
+
+    def return_to_heliport(
+        self,
+        lat: float,
+        lon: float,
+        *,
+        alt: float | None = None,
+        cancel=None,
+        timeout: float = 180,
+    ) -> dict:
+        """RTL hacia un helipuerto alterno: navega en GUIDED al pad y aterriza con LAND.
+
+        ArduPilot RTL siempre regresa al punto HOME; para aterrizar en otra
+        estación se navega hasta sus coordenadas y luego se conmuta a LAND.
+        Bloqueante: está pensado para correr en un hilo aparte del endpoint.
+        """
+        self.ensure_connected()
+        if not self.vehicle.armed:
+            raise RuntimeError("No hay un vuelo activo para redirigir al helipuerto")
+        self.paused = False
+        self._paused_target = None
+        frame = self.vehicle.location.global_relative_frame
+        cruise_alt = alt if alt is not None else (frame.alt or 15.0)
+        # Reintenta el retorno a GUIDED: el ejecutor de misión pudo haber
+        # enviado un RTL residual justo antes de liberar el vehículo.
+        last_exc: Exception | None = None
+        for _ in range(3):
+            try:
+                if self.vehicle.mode.name != "GUIDED":
+                    self._set_mode("GUIDED")
+                    self._wait(lambda: self.vehicle.mode.name == "GUIDED", 10, "modo GUIDED", cancel)
+                break
+            except TimeoutError as exc:
+                last_exc = exc
+        else:
+            raise last_exc or TimeoutError("El vehículo no aceptó el modo GUIDED")
+        waypoint = _Waypoint(latitud=float(lat), longitud=float(lon), altitud_metros=float(cruise_alt))
+        self.goto_waypoint(waypoint, cancel=cancel, timeout=timeout)
+        self._set_mode("LAND")
+        self._wait(lambda: self.vehicle.mode.name == "LAND", 10, "modo LAND", cancel)
+        return {"aterrizando": True, "helipuerto_lat": lat, "helipuerto_lon": lon}
 
     def wait_landed(self, timeout=180):
         self._wait(self.is_grounded, timeout, "aterrizaje y desarmado")
@@ -191,6 +353,8 @@ class DroneService:
         if self.vehicle:
             self.vehicle.close()
             self.vehicle = None
+        self.paused = False
+        self._paused_target = None
 
 
 # Instancia global del servicio

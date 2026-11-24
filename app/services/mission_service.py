@@ -108,6 +108,52 @@ class MissionService:
                 self._finish(mission_id, "FALLIDA", "No se pudo iniciar el ejecutor", grounded=True)
                 raise MissionError("No se pudo iniciar el ejecutor", 503) from exc
 
+    def retry(self, mission_id, ejecutado_por=None):
+        """Clona una misión terminal en una PROGRAMADA nueva y la inicia.
+
+        La misión original conserva su bitácora sellada y telemetría como
+        archivo histórico; el reintento genera un registro independiente.
+        Es un vuelo puntual: la cadena recurrente sigue perteneciendo a la
+        misión original. Si `start` falla (sin enlace, vehículo ocupado,
+        ruta rechazada), el clon queda PROGRAMADA para iniciarlo después.
+        """
+        with self.lock, self.sessions.begin() as db:
+            mission = self._mission(db, mission_id)
+            if mission.estado not in ("FALLIDA", "CANCELADA", "FINALIZADA"):
+                raise MissionError(
+                    f"Solo se reintentan misiones terminadas (FALLIDA, CANCELADA o FINALIZADA), no {mission.estado}",
+                    409,
+                )
+            clone = Mision(
+                creado_por=mission.creado_por,
+                nombre=mission.nombre,
+                descripcion=mission.descripcion,
+                estado="PROGRAMADA",
+                duracion_estimada_min=mission.duracion_estimada_min,
+                helipuerto_salida=mission.helipuerto_salida,
+                helipuerto_llegada=mission.helipuerto_llegada,
+                es_recurrente=False,
+                evitacion_exclusion=mission.evitacion_exclusion,
+                bateria_minima_pct=mission.bateria_minima_pct,
+                sensor_optico=mission.sensor_optico,
+            )
+            db.add(clone)
+            db.flush()
+            for wp in mission.waypoints:
+                db.add(
+                    Ruta(
+                        mision_id=clone.id,
+                        orden_waypoint=wp.orden_waypoint,
+                        latitud=wp.latitud,
+                        longitud=wp.longitud,
+                        altitud_metros=wp.altitud_metros,
+                        hover_segundos=wp.hover_segundos,
+                    )
+                )
+            clone_id = clone.id
+        self.start(clone_id, ejecutado_por=ejecutado_por)
+        return clone_id
+
     def _progress(self, mission_id, count):
         with self.sessions.begin() as db:
             mission = self._mission(db, mission_id)

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from sqlalchemy import BigInteger, DateTime, Integer, String
+from sqlalchemy import BigInteger, Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base_class import Base
@@ -10,7 +10,7 @@ class Grabacion(Base):
     __tablename__ = "grabaciones"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    vuelo_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # ForeignKey a vuelos.id si existe
+    vuelo_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     ruta_archivo: Mapped[str] = mapped_column(String(500), nullable=False)
     fecha_grabacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     duracion_segundos: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -19,3 +19,4 @@ class Grabacion(Base):
     fecha_purga: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.utcnow() + timedelta(days=30), nullable=False
     )
+    purgado: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

@@ -16,5 +16,6 @@ class GrabacionResponse(GrabacionBase):
     fecha_grabacion: datetime
     fecha_purga: datetime
     dias_restantes_purga: int | None = None
+    purgado: bool = False
 
     model_config = ConfigDict(from_attributes=True)

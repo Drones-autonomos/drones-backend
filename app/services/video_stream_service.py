@@ -1,4 +1,4 @@
-"""Servicio de streaming de video en vivo con buffer de frames y reconexión."""
+"""Servicio de streaming de video en vivo con buffer de frames, reconexión y perfiles de calidad."""
 
 import time
 from collections.abc import Iterator
@@ -10,6 +10,12 @@ import cv2
 import numpy as np
 
 from app.core.config import settings
+
+QUALITY_PROFILES: dict[str, tuple[str, int, int]] = {
+    "hd-30": ("1280x720", 30, 70),
+    "fhd-60": ("1920x1080", 60, 82),
+    "4k-30": ("3840x2160", 30, 90),
+}
 
 
 @dataclass(slots=True)
@@ -39,6 +45,20 @@ class VideoStreamService:
         self.fps = fps or settings.VIDEO_STREAM_FPS
         self.jpeg_quality = jpeg_quality or settings.VIDEO_JPEG_QUALITY
         self.resolution = "1280x720"
+        self.quality_profile = "fhd-60"
+
+    def apply_quality_profile(self, profile_id: str) -> dict:
+        """Aplica dinámicamente un perfil de calidad de transmisión (hd-30, fhd-60, 4k-30)."""
+        spec = QUALITY_PROFILES.get(str(profile_id))
+        with self._lock:
+            if spec is not None:
+                resolution, fps, jpeg_quality = spec
+                self.quality_profile = str(profile_id)
+                if not self._online:
+                    self.resolution = resolution
+                self.fps = fps
+                self.jpeg_quality = jpeg_quality
+            return self.get_status()
 
     def publish_jpeg(self, jpeg_bytes: bytes, *, width: int = 1280, height: int = 720) -> LiveFrame:
         if not jpeg_bytes:
@@ -90,6 +110,7 @@ class VideoStreamService:
                 "estado_camara": "ONLINE" if self._online else "STANDBY",
                 "resolucion": self.resolution,
                 "fps": self.fps,
+                "calidad_perfil": self.quality_profile,
                 "frames_publicados": self._sequence,
                 "reconexiones": self._reconnects,
                 "ultimo_frame_at": self._latest.timestamp.isoformat() if self._latest else None,
@@ -107,9 +128,6 @@ class VideoStreamService:
                 frame = self._latest
                 if frame is None:
                     break
-                if frame.sequence == last_seq and max_frames is not None:
-                    # En modo acotado emitimos el último frame disponible para evitar bloqueo en pruebas.
-                    pass
                 last_seq = frame.sequence
                 payload = frame.jpeg_bytes
 

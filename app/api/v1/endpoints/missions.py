@@ -429,6 +429,30 @@ def start_mission(
 
 
 @router.post(
+    "/{id}/retry",
+    response_model=MisionResponse,
+    status_code=202,
+    dependencies=[Depends(deps.require_guard_or_admin), Depends(deps.audit_action("REINTENTAR_MISION"))],
+    summary="Reintentar una misión terminada",
+    description=(
+        "Clona una misión FALLIDA, CANCELADA o FINALIZADA en una nueva "
+        "PROGRAMADA con la misma ruta y la inicia de inmediato. Si el dron "
+        "no está listo, el clon queda PROGRAMADA para iniciarlo después. "
+        "Requiere rol ADMIN o GUARDIA."
+    ),
+)
+def retry_mission(
+    id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: Usuario = Depends(deps.require_guard_or_admin),
+    service: MissionService = Depends(get_mission_service),
+):
+    clone_id = service.retry(id, ejecutado_por=current_user.id)
+    db.expire_all()
+    return db.get(Mision, clone_id)
+
+
+@router.post(
     "/{id}/confirm-landed",
     response_model=MisionResponse,
     dependencies=[Depends(deps.require_guard_or_admin), Depends(deps.audit_action("CONFIRMAR_ATERRIZAJE_MISION"))],

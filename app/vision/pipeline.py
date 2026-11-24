@@ -1,5 +1,6 @@
-"""Pipeline de captura y preprocesamiento de frames con OpenCV."""
+"""Pipeline de captura, privacidad estudiantil (difuminado facial) y preprocesamiento OpenCV."""
 
+import hashlib
 import time
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -29,7 +30,10 @@ class FramePacket:
 
 
 class FramePipeline:
-    """Captura, redimensiona, limita FPS y guarda evidencia visual desde fuentes OpenCV."""
+    """Captura, anonimiza rostros, redimensiona, limita FPS y guarda evidencia visual."""
+
+    _face_cascade: cv2.CascadeClassifier | None = None
+    _cascade_loaded: bool = False
 
     def __init__(
         self,
@@ -45,16 +49,73 @@ class FramePipeline:
         self.evidence_dir = Path(evidence_dir)
         self.evidence_dir.mkdir(parents=True, exist_ok=True)
 
-    def preprocess(self, frame: np.ndarray) -> np.ndarray:
-        """Valida y redimensiona un frame BGR al tamaño configurado."""
+    @classmethod
+    def _get_face_cascade(cls) -> cv2.CascadeClassifier | None:
+        if not cls._cascade_loaded:
+            cls._cascade_loaded = True
+            haar_dir = getattr(cv2.data, "haarcascades", "")
+            xml_path = Path(haar_dir) / "haarcascade_frontalface_default.xml"
+            if xml_path.exists():
+                cascade = cv2.CascadeClassifier(str(xml_path))
+                if not cascade.empty():
+                    cls._face_cascade = cascade
+        return cls._face_cascade
+
+    @classmethod
+    def blur_faces(
+        cls,
+        frame: np.ndarray,
+        *,
+        blur_kernel: tuple[int, int] = (35, 35),
+        extra_boxes: list[tuple[int, int, int, int]] | None = None,
+    ) -> np.ndarray:
+        """Difumina rostros detectados en áreas abiertas (cumplimiento de privacidad UAQ)."""
         if frame is None or frame.size == 0:
             raise ValueError("Frame vacío o inválido")
+
+        output = frame.copy()
+        height, width = output.shape[:2]
+        kx = max(3, int(blur_kernel[0]) | 1)
+        ky = max(3, int(blur_kernel[1]) | 1)
+
+        boxes: list[tuple[int, int, int, int]] = []
+        cascade = cls._get_face_cascade()
+        if cascade is not None:
+            gray = cv2.cvtColor(output, cv2.COLOR_BGR2GRAY)
+            detected = cascade.detectMultiScale(
+                gray,
+                scaleFactor=1.1,
+                minNeighbors=4,
+                minSize=(24, 24),
+            )
+            for x, y, w, h in detected:
+                boxes.append((int(x), int(y), int(x + w), int(y + h)))
+
+        if extra_boxes:
+            boxes.extend(extra_boxes)
+
+        for x1, y1, x2, y2 in boxes:
+            cx1 = max(0, min(width, int(x1)))
+            cy1 = max(0, min(height, int(y1)))
+            cx2 = max(0, min(width, int(x2)))
+            cy2 = max(0, min(height, int(y2)))
+            if cx2 > cx1 and cy2 > cy1:
+                roi = output[cy1:cy2, cx1:cx2]
+                output[cy1:cy2, cx1:cx2] = cv2.GaussianBlur(roi, (kx, ky), 0)
+
+        return output
+
+    def preprocess(self, frame: np.ndarray, *, apply_face_blur: bool = False) -> np.ndarray:
+        """Valida, opcionalmente anonimiza rostros y redimensiona un frame BGR."""
+        if frame is None or frame.size == 0:
+            raise ValueError("Frame vacío o inválido")
+        working = self.blur_faces(frame) if apply_face_blur else frame.copy()
         if self.target_size is None:
-            return frame.copy()
+            return working
         target_w, target_h = self.target_size
-        if frame.shape[1] == target_w and frame.shape[0] == target_h:
-            return frame.copy()
-        return cv2.resize(frame, (target_w, target_h), interpolation=cv2.INTER_LINEAR)
+        if working.shape[1] == target_w and working.shape[0] == target_h:
+            return working
+        return cv2.resize(working, (target_w, target_h), interpolation=cv2.INTER_LINEAR)
 
     def iter_frames(
         self,
@@ -120,12 +181,31 @@ class FramePipeline:
             )
         return annotated
 
-    def save_evidence(self, frame: np.ndarray, prefix: str = "frame") -> str:
+    def save_evidence(
+        self,
+        frame: np.ndarray,
+        prefix: str = "frame",
+        *,
+        apply_face_blur: bool = False,
+    ) -> str:
         """Guarda un frame anotado como JPEG y devuelve su ruta relativa."""
         stamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S_%f")
         filename = f"{prefix}_{stamp}.jpg"
         output_path = self.evidence_dir / filename
-        ok = cv2.imwrite(str(output_path), frame)
+        to_write = self.blur_faces(frame) if apply_face_blur else frame
+        ok = cv2.imwrite(str(output_path), to_write)
         if not ok:
             raise RuntimeError(f"No se pudo guardar la evidencia en {output_path}")
         return str(output_path)
+
+    def save_evidence_with_hash(
+        self,
+        frame: np.ndarray,
+        prefix: str = "frame",
+        *,
+        apply_face_blur: bool = True,
+    ) -> tuple[str, str]:
+        """Guarda evidencia aplicando privacidad facial opcional y retorna (ruta, sha256)."""
+        path_str = self.save_evidence(frame, prefix=prefix, apply_face_blur=apply_face_blur)
+        digest = hashlib.sha256(Path(path_str).read_bytes()).hexdigest()
+        return path_str, digest

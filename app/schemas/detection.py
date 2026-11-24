@@ -5,11 +5,13 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class DeteccionBase(BaseModel):
     vuelo_id: int | None = Field(None, description="ID del vuelo en curso si existe")
-    tipo: str = Field(..., description="Tipo de detección: 'PERSONA' o 'HUMO'")
+    tipo: str = Field(..., description="Tipo de detección: 'PERSONA', 'HUMO' o 'EVIDENCIA_MANUAL'")
     nivel_confianza: float = Field(..., ge=0.0, le=1.0, examples=[0.89])
     frame_url: str | None = Field(None, description="URL/path del frame con bounding box")
     latitud: float = Field(..., ge=-90.0, le=90.0, examples=[20.5888])
     longitud: float = Field(..., ge=-180.0, le=180.0, examples=[-100.3899])
+    altitud_metros: float | None = Field(None, description="Altitud AGL en metros al momento de la captura")
+    checksum_sha256: str | None = Field(None, description="Hash SHA-256 de integridad de la evidencia visual")
     timestamp: datetime | None = None
 
 
