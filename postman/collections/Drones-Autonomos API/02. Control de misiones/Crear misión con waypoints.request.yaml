@@ -9,30 +9,29 @@ body:
   type: json
   content: |-
     {
-      "nombre": "string",
-      "horario_inicio_programado": "1966-03-02T20:13:30.208Z",
+      "nombre": "Patrullaje Perimetral E2E",
+      "descripcion": "Misión de prueba automatizada",
+      "horario_inicio_programado": "2026-12-01T14:00:00Z",
+      "peso_dron_kg": 2.5,
       "waypoints": [
         {
-          "orden_waypoint": 7181,
-          "latitud": 6946.585875640409,
-          "longitud": 7441.605569153717,
-          "altitud_metros": 4687.013454717328
+          "orden_waypoint": 1,
+          "latitud": 20.5905,
+          "longitud": -100.4135,
+          "altitud_metros": 35.0
         },
         {
-          "orden_waypoint": 4049,
-          "latitud": 4314.418989371135,
-          "longitud": 8467.829700965205,
-          "altitud_metros": 1656.3095653598737
+          "orden_waypoint": 2,
+          "latitud": 20.5915,
+          "longitud": -100.4125,
+          "altitud_metros": 40.0
         }
-      ],
-      "descripcion": "string",
-      "peso_dron_kg": 2.5
+      ]
     }
 auth:
-  type: oauth2
+  type: bearer
   credentials:
-    accessTokenUrl: /api/v1/auth/login
-    grant_type: password_credentials
+    token: "{{admin_token}}"
 scripts:
   - type: afterResponse
     code: "pm.test(\"Misión creada\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));\r
@@ -40,5 +39,5 @@ scripts:
       pm.collectionVariables.set(\"mission_id\", pm.response.json().id);"
     language: text/javascript
 settings: {}
-examples: .resources/Crear misión con waypoints.resources/examples
+examples: ./.resources/Crear misión con waypoints.resources/examples
 order: 1000

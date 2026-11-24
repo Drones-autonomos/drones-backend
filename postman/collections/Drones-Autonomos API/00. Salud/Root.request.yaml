@@ -4,5 +4,5 @@ method: GET
 headers:
   Accept: application/json
 settings: {}
-examples: .resources/Root.resources/examples
+examples: ./.resources/Root.resources/examples
 order: 465

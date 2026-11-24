@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-
+from app.services.geofence_service import validate_waypoints_against_geofences
 from app.api import deps
 from app.models.mission import Mision, Ruta
 from app.models.user import Usuario
@@ -41,6 +41,15 @@ def create_mission(
         horario_inicio_programado=mission_in.horario_inicio_programado,
         estado="PROGRAMADA",
     )
+    # 1. Validar que los waypoints no crucen ninguna zona de exclusión activa (Geofencing)
+    error_geofence = validate_waypoints_against_geofences(db, mission_in.waypoints)
+    if error_geofence:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_geofence,
+        )
+
+
     db.add(nueva_mision)
     db.flush()  # Genera el ID de la misión sin hacer commit aún
 

@@ -5,14 +5,12 @@ method: GET
 headers:
   Accept: application/json
 pathVariables:
-  - key: id
-    value: "{{event_id}}"
-    description: ""
+  id: "{{event_id}}"
 auth:
   type: oauth2
   credentials:
     accessTokenUrl: /api/v1/auth/login
     grant_type: password_credentials
 settings: {}
-examples: .resources/Obtener detalle de un evento.resources/examples
+examples: ./.resources/Obtener detalle de un evento.resources/examples
 order: 2000

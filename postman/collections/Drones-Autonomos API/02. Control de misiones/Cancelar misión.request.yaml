@@ -5,14 +5,12 @@ method: POST
 headers:
   Accept: application/json
 pathVariables:
-  - key: id
-    value: "{{mission_id}}"
-    description: ""
+  id: "{{mission_id}}"
 auth:
   type: oauth2
   credentials:
     accessTokenUrl: /api/v1/auth/login
     grant_type: password_credentials
 settings: {}
-examples: .resources/Cancelar misión.resources/examples
+examples: ./.resources/Cancelar misión.resources/examples
 order: 6000

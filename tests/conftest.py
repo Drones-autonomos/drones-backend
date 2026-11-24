@@ -1,11 +1,6 @@
 # ruff: noqa: E402
 """
 conftest.py — Fixtures compartidos para toda la suite de tests.
-
-Estrategia:
-- SQLite en memoria con StaticPool (una sola conexión compartida).
-- El esquema se crea antes de cada test y se destruye al terminar.
-- El TestClient sobreescribe get_db para usar la sesión de test.
 """
 
 import collections
@@ -17,6 +12,7 @@ import os
 import secrets
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 # Configuración aislada: las pruebas no dependen de los secretos del .env local.
 os.environ["SECRET_KEY"] = secrets.token_hex(32)
@@ -39,7 +35,11 @@ from app.api import deps
 from app.core.security import get_password_hash
 from app.db.base_class import Base
 from app.main import app
-from app.models.alert import Alerta  # noqa: F401  (registra la tabla en Base.metadata)
+from app.models.alert import Alerta  # noqa: F401
+from app.models.audit import Auditoria  # noqa: F401
+from app.models.flight_log import BitacoraVuelo  # noqa: F401
+from app.models.geofence import ZonaExclusion  # noqa: F401
+from app.models.recording import Grabacion  # noqa: F401
 from app.models.user import Rol, Usuario
 from app.services.mission_service import MissionService, get_mission_service
 
@@ -82,10 +82,12 @@ def client(db) -> collections.abc.Generator:
     service = MissionService(TestingSessionLocal)
     app.dependency_overrides[get_mission_service] = lambda: service
     app.dependency_overrides[deps.get_db] = override_get_db
-    with TestClient(app) as test_client:
+    test_client = TestClient(app)
+    try:
         yield test_client
-    service.shutdown()
-    app.dependency_overrides.clear()
+    finally:
+        service.shutdown()
+        app.dependency_overrides.clear()
 
 
 @pytest.fixture()
@@ -142,5 +144,8 @@ def guardia_token(client, guardia_user) -> str:
 
 @pytest.fixture(scope="session", autouse=True)
 def disable_scheduler_in_tests():
+    # create=True evita que falle si stop_purge_scheduler o start_purge_scheduler no están en app.main
+    with patch("app.main.start_purge_scheduler", create=True), patch("app.main.stop_purge_scheduler", create=True):
+        yield
     with patch("app.main.start_purge_scheduler"):
         yield

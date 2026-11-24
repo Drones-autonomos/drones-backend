@@ -20,5 +20,5 @@ auth:
     accessTokenUrl: /api/v1/auth/login
     grant_type: password_credentials
 settings: {}
-examples: .resources/Registrar usuario.resources/examples
+examples: ./.resources/Registrar usuario.resources/examples
 order: 1000

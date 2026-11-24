@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/exclusion-zones/?solo_activas=true"
+method: GET
+queryParams:
+  solo_activas: "true"
+auth:
+  type: inherit
+  credentials:
+    id: 01M86025MP2GPQVK1JQG8A05VA
+scripts:
+  - type: afterResponse
+    code: "pm.test(\"Status 200 - Lista de zonas para mapa\", function () {\r
+
+      \    pm.response.to.have.status(200);\r
+
+      });"
+    language: text/javascript
+order: 2000

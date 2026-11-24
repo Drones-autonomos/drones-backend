@@ -18,10 +18,9 @@ queryParams:
     value: "50"
     description: Cantidad máxima de alertas a retornar
 auth:
-  type: oauth2
+  type: inherit
   credentials:
-    accessTokenUrl: /api/v1/auth/login
-    grant_type: password_credentials
+    id: collection-daCffa70ab10f0E53BEEaed6-bearer
 scripts:
   - type: afterResponse
     code: "const data = pm.response.json();\r
@@ -31,5 +30,5 @@ scripts:
       if (list.length) pm.collectionVariables.set(\"alert_id\", list[0].id);"
     language: text/javascript
 settings: {}
-examples: .resources/Historial de alertas de seguridad.resources/examples
+examples: ./.resources/Historial de alertas de seguridad.resources/examples
 order: 1000

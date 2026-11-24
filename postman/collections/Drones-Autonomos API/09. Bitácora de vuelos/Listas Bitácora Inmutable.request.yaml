@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/flight-logs/?skip=0&limit=50"
+method: GET
+queryParams:
+  skip: "0"
+  limit: "50"
+scripts:
+  - type: afterResponse
+    code: "pm.test(\"Status 200 - Consulta de bitácora exitosa\", function () {\r
+
+      \    pm.response.to.have.status(200);\r
+
+      \    pm.expect(pm.response.json()).to.be.an(\"array\");\r
+
+      });"
+    language: text/javascript
+order: 1000

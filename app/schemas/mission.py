@@ -32,6 +32,10 @@ class WaypointBase(BaseModel):
         return validate_altitude(v)
 
 
+# Alias para compatibilidad si algún módulo importa WaypointCreate
+WaypointCreate = WaypointBase
+
+
 class WaypointResponse(WaypointBase):
     id: int
     model_config = ConfigDict(from_attributes=True)

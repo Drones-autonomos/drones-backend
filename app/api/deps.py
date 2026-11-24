@@ -1,6 +1,6 @@
 from collections.abc import Generator
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -9,10 +9,29 @@ from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.user import Usuario
 from app.schemas.token import TokenPayload
+from app.models.audit import Auditoria
+from app.models.user import Usuario
 
 # Define que la URL de obtención de token es /api/v1/auth/login
 reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
 
+def audit_action(accion: str):
+    def _logger(
+        request: Request,
+        db: Session = Depends(get_db),
+        current_user: Usuario = Depends(get_current_user),
+    ):
+        registro = Auditoria(
+            usuario_id=current_user.id,
+            accion=accion,
+            recurso=str(request.url.path),
+            detalle=f"Método {request.method} ejecutado por {current_user.email}",
+            ip_origen=request.client.host if request.client else "unknown",
+        )
+        db.add(registro)
+        db.commit()
+        return current_user
+    return _logger
 
 def get_db() -> Generator[Session, None, None]:
     """Crea una sesión de base de datos por petición y la cierra al finalizar."""

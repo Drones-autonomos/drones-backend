@@ -32,5 +32,5 @@ scripts:
       if (d.evento_id) pm.collectionVariables.set(\"event_id\", d.evento_id);"
     language: text/javascript
 settings: {}
-examples: .resources/Ingesta de detecciones por visión-IA.resources/examples
+examples: ./.resources/Ingesta de detecciones por visión-IA.resources/examples
 order: 1000

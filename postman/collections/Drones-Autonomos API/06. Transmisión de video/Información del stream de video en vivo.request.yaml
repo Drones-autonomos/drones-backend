@@ -5,5 +5,5 @@ method: GET
 headers:
   Accept: application/json
 settings: {}
-examples: .resources/Información del stream de video en vivo.resources/examples
+examples: ./.resources/Información del stream de video en vivo.resources/examples
 order: 1000
