@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{baseUrl}}/api/v1/geofences/{{geofence_id}}"
+url: "{{baseUrl}}/api/v1/exclusion-zones/{{geofence_id}}"
 method: DELETE
 auth:
   type: bearer

@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{baseUrl}}/api/v1/geofences/?solo_activas=true"
+url: "{{baseUrl}}/api/v1/exclusion-zones/?solo_activas=true"
 method: GET
 queryParams:
   solo_activas: "true"
