@@ -1,4 +1,16 @@
 $kind: http-request
-url: ""
-method: GET
+url: "{{baseUrl}}/api/v1/exclusion-zones/{{geofence_id}}"
+method: DELETE
+auth:
+  type: bearer
+  credentials:
+    token: "{{admin_token}}"
+scripts:
+  - type: afterResponse
+    code: "pm.test(\"Status 204 - Zona eliminada\", function () {\r
+
+      \    pm.response.to.have.status(204);\r
+
+      });"
+    language: text/javascript
 order: 3000

@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{baseUrl}}/api/v1/geofences/"
+url: "{{baseUrl}}/api/v1/exclusion-zones/"
 method: POST
 body:
   type: json
@@ -28,9 +28,11 @@ scripts:
 
       \    pm.response.to.have.status(201);\r
 
-      \    const jsonData = pm.response.json();\r
+      \    const data = pm.response.json();\r
 
-      \    pm.collectionVariables.set(\"geofence_id\", jsonData.id);\r
+      \    pm.environment.set(\"geofence_id\", data.id);\r
+
+      \    pm.collectionVariables.set(\"geofence_id\", data.id);\r
 
       });"
     language: text/javascript

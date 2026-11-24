@@ -1,4 +1,5 @@
-from pydantic import Field
+import re
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +15,17 @@ class Settings(BaseSettings):
     VIDEO_STREAM_PROTOCOL: str = "MJPEG/WebSocket"
     VIDEO_STREAM_FPS: int = 15
     VIDEO_JPEG_QUALITY: int = 75
+
+    @field_validator("API_V1_STR", "VIDEO_STREAM_URL", mode="before")
+    @classmethod
+    def clean_git_bash_path(cls, value: str) -> str:
+        if not isinstance(value, str):
+            return value
+        cleaned = value.strip().replace("\\", "/")
+        cleaned = re.sub(r"^/?[A-Za-z]:/Program Files/Git", "", cleaned, flags=re.IGNORECASE)
+        if not cleaned.startswith("/"):
+            cleaned = f"/{cleaned}"
+        return cleaned
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

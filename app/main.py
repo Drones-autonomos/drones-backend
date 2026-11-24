@@ -26,9 +26,20 @@ async def lifespan(app: FastAPI):
             scheduler.shutdown(wait=False)
         await asyncio.to_thread(mission_service.shutdown)
 
+def _normalize_route_path(path: str | None) -> str | None:
+    if path is None:
+        return None
+    cleaned = path.strip()
+    if not cleaned:
+        return None
+    return cleaned if cleaned.startswith("/") else f"/{cleaned}"
 
 app = FastAPI(
-    lifespan=lifespan, title=settings.PROJECT_NAME, openapi_url=f"{settings.API_V1_STR}/openapi.json", docs_url="/docs"
+    lifespan=lifespan,
+    title=settings.PROJECT_NAME,
+    openapi_url=_normalize_route_path(getattr(settings, "OPENAPI_URL", None)) or "/openapi.json",
+    docs_url=_normalize_route_path(getattr(settings, "DOCS_URL", None)) or "/docs",
+    redoc_url=_normalize_route_path(getattr(settings, "REDOC_URL", None)) or "/redoc",
 )
 
 # Configuración de orígenes permitidos (frontend)
@@ -46,7 +57,12 @@ app.add_middleware(
 )
 
 # Conectar rutas versión 1
-app.include_router(api_router, prefix=settings.API_V1_STR)
+api_prefix = (settings.API_V1_STR or "/api/v1").strip()
+if not api_prefix.startswith("/"):
+    api_prefix = f"/{api_prefix}"
+
+
+app.include_router(api_router, prefix=api_prefix)
 
 
 @app.get("/")

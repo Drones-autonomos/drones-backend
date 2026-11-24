@@ -1,10 +1,12 @@
 """Endpoints para consultar y actualizar la configuración normativa operativa."""
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 
 from app.api import deps
 from app.core.normative import NormativeConfig, get_normative_config, update_normative_config
 from app.models.user import Usuario
+
 
 router = APIRouter()
 

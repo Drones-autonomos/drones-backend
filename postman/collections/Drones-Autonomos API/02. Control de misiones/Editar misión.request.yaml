@@ -6,9 +6,7 @@ headers:
   Content-Type: application/json
   Accept: application/json
 pathVariables:
-  - key: id
-    value: "{{mission_id}}"
-    description: ""
+  id: "{{mission_id}}"
 body:
   type: json
   content: |-
@@ -23,5 +21,5 @@ auth:
     accessTokenUrl: /api/v1/auth/login
     grant_type: password_credentials
 settings: {}
-examples: .resources/Editar misión.resources/examples
+examples: ./.resources/Editar misión.resources/examples
 order: 4000
