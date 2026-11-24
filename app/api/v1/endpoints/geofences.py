@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.api import deps
 from app.models.geofence import ZonaExclusion
 from app.models.user import Usuario
-from app.schemas.geofence import ZonaExclusionCreate, ZonaExclusionResponse
+from app.schemas.geofence import ZonaExclusionCreate, ZonaExclusionResponse, ZonaExclusionUpdate
 
 router = APIRouter()
 
@@ -29,6 +29,11 @@ def create_exclusion_zone(
         lon_min=zona_in.lon_min,
         lon_max=zona_in.lon_max,
         activa=zona_in.activa,
+        clasificacion=zona_in.clasificacion,
+        motivo=zona_in.motivo,
+        descripcion=zona_in.descripcion,
+        codigo_badge=zona_in.codigo_badge,
+        altitud_max_m=zona_in.altitud_max_m,
     )
     db.add(nueva_zona)
     db.commit()
@@ -49,8 +54,61 @@ def list_exclusion_zones(
 ):
     query = db.query(ZonaExclusion)
     if solo_activas:
-        query = query.filter(ZonaExclusion.activa == True)
+        query = query.filter(ZonaExclusion.activa.is_(True))
     return query.order_by(ZonaExclusion.created_at.desc()).all()
+
+
+@router.put(
+    "/{geofence_id}",
+    response_model=ZonaExclusionResponse,
+    dependencies=[Depends(deps.audit_action("EDITAR_ZONA_EXCLUSION"))],
+    summary="Editar zona de exclusión (Solo Admin)",
+)
+def update_exclusion_zone(
+    geofence_id: int,
+    zona_in: ZonaExclusionUpdate,
+    db: Session = Depends(deps.get_db),
+    current_user: Usuario = Depends(deps.require_admin),
+):
+    zona = db.query(ZonaExclusion).filter(ZonaExclusion.id == geofence_id).first()
+    if not zona:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Zona de exclusión no encontrada.",
+        )
+    for field, value in zona_in.model_dump(exclude_unset=True).items():
+        setattr(zona, field, value)
+    if zona.lat_min >= zona.lat_max or zona.lon_min >= zona.lon_max:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Los límites de la zona deben respetar min < max.",
+        )
+    db.commit()
+    db.refresh(zona)
+    return zona
+
+
+@router.patch(
+    "/{geofence_id}/toggle",
+    response_model=ZonaExclusionResponse,
+    dependencies=[Depends(deps.audit_action("TOGGLE_ZONA_EXCLUSION"))],
+    summary="Activar o pausar zona de exclusión (Solo Admin)",
+)
+def toggle_exclusion_zone(
+    geofence_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: Usuario = Depends(deps.require_admin),
+):
+    zona = db.query(ZonaExclusion).filter(ZonaExclusion.id == geofence_id).first()
+    if not zona:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Zona de exclusión no encontrada.",
+        )
+    zona.activa = not zona.activa
+    db.commit()
+    db.refresh(zona)
+    return zona
 
 
 @router.delete(

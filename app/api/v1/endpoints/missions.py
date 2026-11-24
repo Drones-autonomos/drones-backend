@@ -1,7 +1,11 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from app.services.geofence_service import validate_waypoints_against_geofences
+
 from app.api import deps
+from app.core.patrol_routes import get_patrol_presets
 from app.models.mission import Mision, Ruta
 from app.models.user import Usuario
 from app.schemas.mission import (
@@ -9,10 +13,24 @@ from app.schemas.mission import (
     MisionResponse,
     MisionUpdate,
 )
-from app.services.geofence_service import validate_waypoints_in_db
+from app.schemas.patrol import PatrolPreset
+from app.services.geofence_service import validate_waypoints_against_geofences, validate_waypoints_in_db
 from app.services.mission_service import MissionService, get_mission_service
 
 router = APIRouter()
+
+
+def _persist_ruta(mision_id: int, wp, db: Session) -> Ruta:
+    row = Ruta(
+        mision_id=mision_id,
+        orden_waypoint=wp.orden_waypoint,
+        latitud=wp.latitud,
+        longitud=wp.longitud,
+        altitud_metros=wp.altitud_metros,
+        hover_segundos=wp.hover_segundos,
+    )
+    db.add(row)
+    return row
 
 
 @router.post(
@@ -39,15 +57,25 @@ def create_mission(
         nombre=mission_in.nombre,
         descripcion=mission_in.descripcion,
         horario_inicio_programado=mission_in.horario_inicio_programado,
+        horario_fin_programado=mission_in.horario_fin_programado,
+        duracion_estimada_min=mission_in.duracion_estimada_min,
+        helipuerto_salida=mission_in.helipuerto_salida,
+        helipuerto_llegada=mission_in.helipuerto_llegada,
+        es_recurrente=mission_in.es_recurrente,
+        dias_semana_json=json.dumps(mission_in.dias_semana) if mission_in.dias_semana else None,
+        evitacion_exclusion=mission_in.evitacion_exclusion,
+        bateria_minima_pct=mission_in.bateria_minima_pct,
+        sensor_optico=mission_in.sensor_optico,
         estado="PROGRAMADA",
     )
     # 1. Validar que los waypoints no crucen ninguna zona de exclusión activa (Geofencing)
-    error_geofence = validate_waypoints_against_geofences(db, mission_in.waypoints)
-    if error_geofence:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=error_geofence,
-        )
+    if mission_in.evitacion_exclusion:
+        error_geofence = validate_waypoints_against_geofences(db, mission_in.waypoints)
+        if error_geofence:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error_geofence,
+            )
 
 
     db.add(nueva_mision)
@@ -55,14 +83,7 @@ def create_mission(
 
     # 2. Crear los waypoints vinculados
     for wp in mission_in.waypoints:
-        nuevo_wp = Ruta(
-            mision_id=nueva_mision.id,
-            orden_waypoint=wp.orden_waypoint,
-            latitud=wp.latitud,
-            longitud=wp.longitud,
-            altitud_metros=wp.altitud_metros,
-        )
-        db.add(nuevo_wp)
+        _persist_ruta(nueva_mision.id, wp, db)
 
     db.commit()
     db.refresh(nueva_mision)
@@ -91,6 +112,55 @@ def list_missions(
         query = query.filter(Mision.estado == estado.upper())
     misiones = query.order_by(Mision.created_at.desc()).offset(skip).limit(limit).all()
     return misiones
+
+
+# NOTA: "/presets" debe declararse ANTES que "/{id}" — de lo contrario el
+# path param capturaría el literal "presets" y fallaría la conversión a int.
+@router.get(
+    "/presets",
+    response_model=list[PatrolPreset],
+    dependencies=[Depends(deps.require_guard_or_admin)],
+    summary="Rutas de patrullaje preprogramadas",
+    description=(
+        "Devuelve las variantes de patrullaje del campus validadas contra las "
+        "zonas de interferencia (traslado + barrido + regreso a Base 1), con "
+        "las bases fijas y HOME. Requiere rol ADMIN o GUARDIA."
+    ),
+)
+def list_patrol_presets(
+    current_user: Usuario = Depends(deps.require_guard_or_admin),
+):
+    return get_patrol_presets()
+
+
+class SchedulerToggleRequest(BaseModel):
+    enabled: bool
+
+
+# NOTA: "/scheduler" también debe declararse ANTES que "/{id}".
+@router.get(
+    "/scheduler",
+    dependencies=[Depends(deps.require_guard_or_admin)],
+    summary="Estado del scheduler de vuelo autónomo",
+)
+def get_scheduler(
+    service: MissionService = Depends(get_mission_service),
+    current_user: Usuario = Depends(deps.require_guard_or_admin),
+):
+    return service.scheduler_status()
+
+
+@router.put(
+    "/scheduler",
+    dependencies=[Depends(deps.require_admin)],
+    summary="Activar o pausar el scheduler de vuelo autónomo",
+)
+def set_scheduler(
+    body: SchedulerToggleRequest,
+    service: MissionService = Depends(get_mission_service),
+    current_user: Usuario = Depends(deps.require_admin),
+):
+    return service.set_scheduler_enabled(body.enabled)
 
 
 @router.get(
@@ -133,12 +203,64 @@ def update_mission(
         )
 
     update_data = mission_in.model_dump(exclude_unset=True)
+
+    if "waypoints" in update_data and update_data["waypoints"] is not None:
+        waypoints = mission_in.waypoints
+        try:
+            validate_waypoints_in_db(db, waypoints)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            ) from exc
+        error_geofence = validate_waypoints_against_geofences(db, waypoints)
+        if error_geofence:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=error_geofence
+            )
+        for row in list(mision.waypoints):
+            db.delete(row)
+        db.flush()
+        for wp in waypoints:
+            _persist_ruta(mision.id, wp, db)
+    update_data.pop("waypoints", None)
+
+    if "dias_semana" in update_data:
+        dias = update_data.pop("dias_semana")
+        mision.dias_semana_json = json.dumps(dias) if dias else None
+
     for field, value in update_data.items():
         setattr(mision, field, value)
 
     db.commit()
     db.refresh(mision)
     return mision
+
+
+@router.delete(
+    "/{id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(deps.require_admin)],
+    summary="Eliminar misión",
+    description=(
+        "Elimina una misión en estado PROGRAMADA, CANCELADA, FINALIZADA o FALLIDA. "
+        "Rechaza misiones en curso o con reserva del vehículo."
+    ),
+)
+def delete_mission(
+    id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: Usuario = Depends(deps.require_admin),
+):
+    mision = db.query(Mision).filter(Mision.id == id).first()
+    if not mision:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Misión no encontrada")
+    if mision.vehiculo_activo == 1 or mision.estado not in ("PROGRAMADA", "CANCELADA", "FALLIDA"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Solo se pueden eliminar misiones PROGRAMADA, CANCELADA o FALLIDA",
+        )
+    db.delete(mision)
+    db.commit()
 
 
 @router.post(
@@ -163,10 +285,10 @@ def cancel_mission(
 def start_mission(
     id: int,
     db: Session = Depends(deps.get_db),
-    current_user: Usuario = Depends(deps.require_admin),
+    current_user: Usuario = Depends(deps.require_guard_or_admin),
     service: MissionService = Depends(get_mission_service),
 ):
-    service.start(id)
+    service.start(id, ejecutado_por=current_user.id)
     db.expire_all()
     return db.get(Mision, id)
 
@@ -175,7 +297,7 @@ def start_mission(
 def confirm_landed(
     id: int,
     db: Session = Depends(deps.get_db),
-    current_user: Usuario = Depends(deps.require_admin),
+    current_user: Usuario = Depends(deps.require_guard_or_admin),
     service: MissionService = Depends(get_mission_service),
 ):
     service.confirm_landed(id)

@@ -1,5 +1,9 @@
+"""Schemas Pydantic para geocercas operativas, zonas de exclusión y validación de puntos."""
+
+import json
 from datetime import datetime
 from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
@@ -10,6 +14,11 @@ class ZonaExclusionCreate(BaseModel):
     lon_min: float = Field(..., ge=-180.0, le=180.0)
     lon_max: float = Field(..., ge=-180.0, le=180.0)
     activa: bool = True
+    clasificacion: Literal["restringida", "advertencia"] = "restringida"
+    motivo: str | None = Field(default=None, max_length=255)
+    descripcion: str | None = None
+    codigo_badge: str | None = Field(default=None, max_length=20)
+    altitud_max_m: float | None = Field(default=None, ge=0.0, le=200.0)
 
     @model_validator(mode="after")
     def validar_limites_rectangulo(self):
@@ -20,14 +29,38 @@ class ZonaExclusionCreate(BaseModel):
         return self
 
 
+class ZonaExclusionUpdate(BaseModel):
+    nombre: str | None = Field(default=None, min_length=3, max_length=100)
+    lat_min: float | None = Field(default=None, ge=-90.0, le=90.0)
+    lat_max: float | None = Field(default=None, ge=-90.0, le=90.0)
+    lon_min: float | None = Field(default=None, ge=-180.0, le=180.0)
+    lon_max: float | None = Field(default=None, ge=-180.0, le=180.0)
+    activa: bool | None = None
+    clasificacion: Literal["restringida", "advertencia"] | None = None
+    motivo: str | None = Field(default=None, max_length=255)
+    descripcion: str | None = None
+    codigo_badge: str | None = Field(default=None, max_length=20)
+    altitud_max_m: float | None = Field(default=None, ge=0.0, le=200.0)
+
+    @model_validator(mode="after")
+    def validar_limites_rectangulo(self):
+        if (
+            self.lat_min is not None
+            and self.lat_max is not None
+            and self.lat_min >= self.lat_max
+        ):
+            raise ValueError("lat_min debe ser estrictamente menor que lat_max.")
+        if (
+            self.lon_min is not None
+            and self.lon_max is not None
+            and self.lon_min >= self.lon_max
+        ):
+            raise ValueError("lon_min debe ser estrictamente menor que lon_max.")
+        return self
+
+
 class ZonaExclusionResponse(ZonaExclusionCreate):
     id: int
-"""Schemas Pydantic para geocercas operativas y validación de puntos."""
-
-import json
-from datetime import datetime
-
-from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class GeocercaCreate(BaseModel):
@@ -40,6 +73,9 @@ class GeocercaCreate(BaseModel):
     poligono: list[tuple[float, float]] | None = None
     altitud_min_m: float = Field(default=2.0, ge=0.0, le=200.0)
     altitud_max_m: float = Field(default=200.0, ge=2.0, le=200.0)
+    descripcion: str | None = None
+    motivo: str | None = Field(default=None, max_length=255)
+    codigo_badge: str | None = Field(default=None, max_length=20)
 
     @model_validator(mode="after")
     def validate_geometry(self):
@@ -54,6 +90,21 @@ class GeocercaCreate(BaseModel):
         return self
 
 
+class GeocercaUpdate(BaseModel):
+    nombre: str | None = Field(default=None, min_length=2, max_length=100)
+    tipo: str | None = Field(default=None, pattern="^(CIRCULAR|POLIGONO)$")
+    activa: bool | None = None
+    centro_lat: float | None = Field(default=None, ge=-90.0, le=90.0)
+    centro_lon: float | None = Field(default=None, ge=-180.0, le=180.0)
+    radio_metros: float | None = Field(default=None, gt=0.0, le=50000.0)
+    poligono: list[tuple[float, float]] | None = None
+    altitud_min_m: float | None = Field(default=None, ge=0.0, le=200.0)
+    altitud_max_m: float | None = Field(default=None, ge=2.0, le=200.0)
+    descripcion: str | None = None
+    motivo: str | None = Field(default=None, max_length=255)
+    codigo_badge: str | None = Field(default=None, max_length=20)
+
+
 class GeocercaResponse(BaseModel):
     id: int
     nombre: str
@@ -65,18 +116,13 @@ class GeocercaResponse(BaseModel):
     poligono: list[list[float]] | None = None
     altitud_min_m: float
     altitud_max_m: float
+    descripcion: str | None = None
+    motivo: str | None = None
+    codigo_badge: str | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
-
-class DroneConnectionEventCreate(BaseModel):
-    vuelo_id: int | None = Field(None, description="ID de la misión o vuelo activo")
-    estado_enlace: Literal["ONLINE", "WEAK_SIGNAL", "DISCONNECTED_RTL"] = Field(
-        ..., description="Estado de conectividad reportado por SITL/MAVProxy"
-    )
-    detalle: str | None = Field(None, description="Información adicional o coordenadas del evento")
-    bateria_porcentaje: float | None = Field(None, ge=0.0, le=100.0)
     @classmethod
     def from_orm_model(cls, obj) -> "GeocercaResponse":
         poly = json.loads(obj.poligono_json) if obj.poligono_json else None
@@ -91,8 +137,20 @@ class DroneConnectionEventCreate(BaseModel):
             poligono=poly,
             altitud_min_m=obj.altitud_min_m,
             altitud_max_m=obj.altitud_max_m,
+            descripcion=obj.descripcion,
+            motivo=obj.motivo,
+            codigo_badge=obj.codigo_badge,
             created_at=obj.created_at,
         )
+
+
+class DroneConnectionEventCreate(BaseModel):
+    vuelo_id: int | None = Field(None, description="ID de la misión o vuelo activo")
+    estado_enlace: Literal["ONLINE", "WEAK_SIGNAL", "DISCONNECTED_RTL"] = Field(
+        ..., description="Estado de conectividad reportado por SITL/MAVProxy"
+    )
+    detalle: str | None = Field(None, description="Información adicional o coordenadas del evento")
+    bateria_porcentaje: float | None = Field(None, ge=0.0, le=100.0)
 
 
 class GeofencePointCheck(BaseModel):

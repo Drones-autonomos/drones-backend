@@ -1,39 +1,13 @@
-from shapely.geometry import LineString, Point, box
-from sqlalchemy.orm import Session
-from app.models.geofence import ZonaExclusion
-
-def validate_waypoints_against_geofences(db: Session, waypoints: list) -> str | None:
-    zonas = db.query(ZonaExclusion).filter(ZonaExclusion.activa == True).all()
-    if not zonas or not waypoints:
-        return None
-
-    coords = []
-    for wp in waypoints:
-        lat = wp.get("latitud") if isinstance(wp, dict) else getattr(wp, "latitud", getattr(wp, "latitude", None))
-        lon = wp.get("longitud") if isinstance(wp, dict) else getattr(wp, "longitud", getattr(wp, "longitude", None))
-        if lat is not None and lon is not None:
-            coords.append((lon, lat))
-
-    if not coords:
-        return None
-
-    ruta_geom = Point(coords[0]) if len(coords) == 1 else LineString(coords)
-
-    for zona in zonas:
-        poligono_exclusion = box(zona.lon_min, zona.lat_min, zona.lon_max, zona.lat_max)
-        if ruta_geom.intersects(poligono_exclusion):
-            return f"La trayectoria invade la zona de exclusión '{zona.nombre}'."
-    return None
-"""Validación geométrica de geocercas circulares y poligonales."""
+"""Validación geométrica de geocercas circulares/poligonales y zonas de exclusión."""
 
 import json
 import math
 from dataclasses import dataclass
 
-from shapely.geometry import Point, Polygon
+from shapely.geometry import LineString, Point, Polygon, box
 from sqlalchemy.orm import Session
 
-from app.models.geofence import Geocerca
+from app.models.geofence import Geocerca, ZonaExclusion
 
 
 @dataclass(slots=True)
@@ -92,7 +66,9 @@ def validate_point_against_specs(lat: float, lon: float, alt_m: float, specs: li
         return
     if any(point_inside_geofence(lat, lon, alt_m, fence) for fence in specs):
         return
-    raise ValueError(f"Violación de geocerca: el punto ({lat}, {lon}, {alt_m}m) está fuera de las zonas autorizadas.")
+    raise ValueError(
+        f"Violación de geocerca: el punto ({lat}, {lon}, {alt_m}m) está fuera de las zonas autorizadas."
+    )
 
 
 def get_active_geofence_specs(db: Session) -> list[GeofenceSpec]:
@@ -105,3 +81,75 @@ def validate_waypoints_in_db(db: Session, waypoints) -> list[GeofenceSpec]:
     for wp in waypoints:
         validate_point_against_specs(float(wp.latitud), float(wp.longitud), float(wp.altitud_metros), specs)
     return specs
+
+
+def _wp_coords(wp):
+    if isinstance(wp, dict):
+        return wp.get("latitud"), wp.get("longitud"), wp.get("altitud_metros")
+    lat = getattr(wp, "latitud", getattr(wp, "latitude", None))
+    lon = getattr(wp, "longitud", getattr(wp, "longitude", None))
+    alt = getattr(wp, "altitud_metros", getattr(wp, "altitud", None))
+    return lat, lon, alt
+
+
+def evaluate_route_against_zones(db: Session, waypoints: list) -> tuple[str | None, list[str]]:
+    """Evalúa la ruta contra las zonas de exclusión activas.
+
+    Devuelve ``(error_bloqueante, advertencias)``:
+    - Las zonas ``restringida`` bloquean la misión. Si definen ``altitud_max_m``
+      (tope de estructura, p. ej. un arcotecho), solo bloquean waypoints dentro
+      del rectángulo volando por debajo de ese tope.
+    - Las zonas ``advertencia`` no bloquean; reportan avisos no fatales.
+    """
+    zonas = db.query(ZonaExclusion).filter(ZonaExclusion.activa.is_(True)).all()
+    if not zonas or not waypoints:
+        return None, []
+
+    coords = []
+    for wp in waypoints:
+        lat, lon, alt = _wp_coords(wp)
+        if lat is not None and lon is not None:
+            coords.append((float(lon), float(lat), None if alt is None else float(alt)))
+
+    if not coords:
+        return None, []
+
+    ruta_geom = (
+        Point(coords[0][0], coords[0][1])
+        if len(coords) == 1
+        else LineString([(lon, lat) for lon, lat, _alt in coords])
+    )
+
+    warnings: list[str] = []
+    for zona in zonas:
+        poligono_exclusion = box(zona.lon_min, zona.lat_min, zona.lon_max, zona.lat_max)
+        if zona.clasificacion == "advertencia":
+            if ruta_geom.intersects(poligono_exclusion):
+                warnings.append(f"La trayectoria cruza la zona de advertencia '{zona.nombre}'.")
+            continue
+        if zona.altitud_max_m is not None:
+            # Tope de altura: solo bloquea puntos dentro del polígono volando a
+            # altitud <= altitud_max_m (pasar por encima de la estructura es válido).
+            for lon, lat, alt in coords:
+                if (alt is None or alt <= zona.altitud_max_m) and poligono_exclusion.covers(
+                    Point(lon, lat)
+                ):
+                    return (
+                        f"La trayectoria invade la zona restringida '{zona.nombre}' "
+                        f"por debajo de su tope de {zona.altitud_max_m} m.",
+                        warnings,
+                    )
+            continue
+        if ruta_geom.intersects(poligono_exclusion):
+            return f"La trayectoria invade la zona de exclusión '{zona.nombre}'.", warnings
+    return None, warnings
+
+
+def validate_waypoints_against_geofences(db: Session, waypoints: list) -> str | None:
+    error, _warnings = evaluate_route_against_zones(db, waypoints)
+    return error
+
+
+def waypoint_route_warnings(db: Session, waypoints: list) -> list[str]:
+    _error, warnings = evaluate_route_against_zones(db, waypoints)
+    return warnings

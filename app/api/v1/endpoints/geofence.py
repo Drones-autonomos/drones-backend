@@ -11,6 +11,7 @@ from app.models.user import Usuario
 from app.schemas.geofence import (
     GeocercaCreate,
     GeocercaResponse,
+    GeocercaUpdate,
     GeofenceCheckResponse,
     GeofencePointCheck,
 )
@@ -40,6 +41,9 @@ def create_geofence(
         poligono_json=json.dumps(geofence_in.poligono) if geofence_in.poligono else None,
         altitud_min_m=geofence_in.altitud_min_m,
         altitud_max_m=geofence_in.altitud_max_m,
+        descripcion=geofence_in.descripcion,
+        motivo=geofence_in.motivo,
+        codigo_badge=geofence_in.codigo_badge,
     )
     db.add(row)
     db.commit()
@@ -58,6 +62,38 @@ def list_geofences(
 ):
     rows = db.query(Geocerca).order_by(Geocerca.id.asc()).all()
     return [GeocercaResponse.from_orm_model(r) for r in rows]
+
+
+@router.put(
+    "/{id}",
+    response_model=GeocercaResponse,
+    summary="Editar geocerca operativa (Solo Admin)",
+)
+def update_geofence(
+    id: int,
+    geofence_in: GeocercaUpdate,
+    db: Session = Depends(deps.get_db),
+    current_user: Usuario = Depends(deps.require_admin),
+):
+    row = db.query(Geocerca).filter(Geocerca.id == id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Geocerca no encontrada")
+
+    update_data = geofence_in.model_dump(exclude_unset=True)
+    if "poligono" in update_data:
+        poligono = update_data.pop("poligono")
+        row.poligono_json = json.dumps(poligono) if poligono else None
+    for field, value in update_data.items():
+        setattr(row, field, value)
+
+    if row.altitud_min_m > row.altitud_max_m:
+        raise HTTPException(
+            status_code=422, detail="altitud_min_m no puede ser mayor a altitud_max_m"
+        )
+
+    db.commit()
+    db.refresh(row)
+    return GeocercaResponse.from_orm_model(row)
 
 
 @router.patch(
